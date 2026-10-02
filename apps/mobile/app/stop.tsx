@@ -9,7 +9,6 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import * as Location from 'expo-location';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { api, getDeviceId } from '../src/api/client';

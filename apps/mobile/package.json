@@ -7,7 +7,7 @@
     "dev": "expo start",
     "android": "expo start --android",
     "build": "tsc --noEmit -p tsconfig.json",
-    "lint": "eslint app src --ext .ts,.tsx --max-warnings=0",
+    "lint": "eslint app src --max-warnings=0",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "jest --passWithNoTests"
   },

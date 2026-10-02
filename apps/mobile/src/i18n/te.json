@@ -1,6 +1,9 @@
 {
   "appName": "సఫర్",
   "planTitle": "బస్సు + మెట్రో ప్రయాణం",
+  "whereTo": "ఎక్కడికి?",
+  "myLocation": "నా ప్రస్తుత స్థానం",
+  "change": "మార్చండి",
   "fromPlaceholder": "ఎక్కడ నుండి",
   "toPlaceholder": "ఎక్కడికి",
   "useLocation": "నా ప్రస్తుత స్థానం",

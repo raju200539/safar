@@ -1,6 +1,9 @@
 {
   "appName": "Safar",
   "planTitle": "Plan a bus + Metro trip",
+  "whereTo": "Where to?",
+  "myLocation": "My location",
+  "change": "Change",
   "fromPlaceholder": "From (stop, station, or place)",
   "toPlaceholder": "To",
   "useLocation": "Use my location",

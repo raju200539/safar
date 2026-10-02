@@ -21,14 +21,26 @@ export interface Checkpoint extends MapPoint {
   name?: string;
 }
 
+export interface StopPin extends MapPoint {
+  stopId?: string;
+  name?: string;
+}
+
+type Mode = 'route' | 'pick' | 'browse';
+
 interface Props {
-  mode: 'route' | 'pick';
+  mode: Mode;
   /** Route line + bounds for 'route'. */
   points?: MapPoint[];
   /** Start/destination pins for 'route'. */
   pins?: { start?: MapPoint; end?: MapPoint };
   /** Intermediate stops drawn as dots for 'route'. */
   checkpoints?: Checkpoint[];
+  /** Stop pins for 'browse'. */
+  stops?: StopPin[];
+  /** User location dot for 'browse'. */
+  user?: MapPoint | null;
+  onStopPress?: (stopId: string) => void;
   /** Initial center for 'pick'. */
   center?: MapPoint;
   onPick?: (p: MapPoint) => void;
@@ -39,10 +51,12 @@ const LEAFLET_CSS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
 const LEAFLET_JS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
 
 function html(
-  mode: 'route' | 'pick',
+  mode: Mode,
   points: MapPoint[],
   pins: Props['pins'],
   checkpoints: Checkpoint[],
+  stops: StopPin[],
+  user: MapPoint | null,
   center: MapPoint,
 ): string {
   const pts = JSON.stringify(points.map((p) => [p.latitude, p.longitude]));
@@ -53,6 +67,10 @@ function html(
   const cpJson = JSON.stringify(
     checkpoints.map((c) => [c.latitude, c.longitude, c.name ?? '']),
   );
+  const stopJson = JSON.stringify(
+    stops.map((s) => [s.latitude, s.longitude, s.name ?? '', s.stopId ?? '']),
+  );
+  const userJson = user ? JSON.stringify([user.latitude, user.longitude]) : 'null';
   return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <link rel="stylesheet" href="${LEAFLET_CSS}" />
 <style>html,body,#m{height:100%;margin:0;padding:0}.leaflet-container{font:inherit}</style></head>
@@ -60,7 +78,7 @@ function html(
 <script src="${LEAFLET_JS}"></script>
 <script>
 (function(){
-  var map = L.map('m', { zoomControl: false }).setView([${center.latitude}, ${center.longitude}], 13);
+  var map = L.map('m', { zoomControl: false }).setView([${center.latitude}, ${center.longitude}], 14);
   L.control.zoom({ position: 'bottomright' }).addTo(map);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
   var pts = ${pts};
@@ -76,6 +94,19 @@ function html(
     cps.forEach(function(c) {
       L.circleMarker([c[0], c[1]], { radius: 6, color: '#ffffff', weight: 2, fillColor: '#E63946', fillOpacity: 1 }).addTo(map).bindPopup(c[2] || '');
     });
+  } else if ('${mode}' === 'browse') {
+    var uu = ${userJson};
+    if (uu) {
+      L.circleMarker(uu, { radius: 9, color: '#ffffff', weight: 3, fillColor: '#0B6E4F', fillOpacity: 1 }).addTo(map).bindPopup('You');
+    }
+    var sts = ${stopJson};
+    sts.forEach(function(s) {
+      var m = L.marker([s[0], s[1]]).addTo(map).bindPopup(s[2] || 'Stop');
+      m.on('click', function() {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ stopId: s[3] }));
+      });
+    });
+    if (uu) map.setView(uu, 15);
   } else {
     var marker = null;
     map.on('click', function(e) {
@@ -101,17 +132,28 @@ export function LeafletMap(props: Props): React.JSX.Element {
     const cps = (props.checkpoints ?? []).filter(
       (p) => Number.isFinite(p.latitude) && Number.isFinite(p.longitude),
     );
+    const sts = (props.stops ?? []).filter(
+      (p) => Number.isFinite(p.latitude) && Number.isFinite(p.longitude),
+    );
     const center =
       props.center ??
+      props.user ??
       (pts.length > 0
         ? {
             latitude: pts.reduce((a, p) => a + p.latitude, 0) / pts.length,
             longitude: pts.reduce((a, p) => a + p.longitude, 0) / pts.length,
           }
         : { latitude: 17.385, longitude: 78.486 });
-    return { html: html(props.mode, pts, props.pins, cps, center) };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [props.mode, props.points, props.pins, props.checkpoints, props.center]);
+    return { html: html(props.mode, pts, props.pins, cps, sts, props.user ?? null, center) };
+  }, [
+    props.mode,
+    props.points,
+    props.pins,
+    props.checkpoints,
+    props.stops,
+    props.user,
+    props.center,
+  ]);
 
   return (
     <View style={{ ...styles.box, height: props.height ?? styles.box.height }}>
@@ -120,14 +162,21 @@ export function LeafletMap(props: Props): React.JSX.Element {
         style={styles.web}
         onLoadEnd={() => setReady(true)}
         onMessage={(e) => {
-          if (props.mode !== 'pick' || !props.onPick) return;
           try {
-            const p = JSON.parse(e.nativeEvent.data) as {
-              latitude: number;
-              longitude: number;
+            const msg = JSON.parse(e.nativeEvent.data) as {
+              latitude?: number;
+              longitude?: number;
+              stopId?: string;
             };
-            if (Number.isFinite(p.latitude) && Number.isFinite(p.longitude)) {
-              props.onPick(p);
+            if (props.mode === 'pick' && props.onPick) {
+              if (Number.isFinite(msg.latitude) && Number.isFinite(msg.longitude)) {
+                props.onPick({
+                  latitude: msg.latitude as number,
+                  longitude: msg.longitude as number,
+                });
+              }
+            } else if (props.mode === 'browse' && props.onStopPress && msg.stopId) {
+              props.onStopPress(msg.stopId);
             }
           } catch {
             // ignore malformed bridge messages

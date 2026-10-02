@@ -1,9 +1,8 @@
-import { Link, Stack, useFocusEffect, useRouter } from 'expo-router';
+import { Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
+  Modal,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -19,15 +18,16 @@ import {
   getRecentSearches,
   type RecentSearch,
 } from '../src/api/client';
-import { fmtDateTime } from '../src/api/format';
 import {
   getEndpoints,
   setEndpoint,
   swapEndpoints,
   type Endpoint,
 } from '../src/api/endpoints';
+import { LeafletMap, type StopPin } from '../src/components/LeafletMap';
 import { UiButton } from '../src/ui/UiButton';
 import { cardBase, theme, type } from '../src/ui/theme';
+import { animateLayout } from '../src/ui/anim';
 import type { HealthStatus, Place } from '@hyd/shared';
 import '../src/i18n';
 
@@ -43,7 +43,10 @@ function usePlaceSearch(query: string): Place[] {
       api
         .searchPlaces(query.trim())
         .then((r) => {
-          if (live) setResults(r.slice(0, 8));
+          if (live) {
+            animateLayout();
+            setResults(r.slice(0, 8));
+          }
         })
         .catch(() => {
           if (live) setResults([]);
@@ -61,71 +64,66 @@ export default function Home(): React.JSX.Element {
   const { t } = useTranslation();
   const router = useRouter();
   const [health, setHealth] = useState('…');
-  const [fromText, setFromText] = useState('');
-  const [toText, setToText] = useState('');
+  const [userLoc, setUserLoc] = useState<{ latitude: number; longitude: number } | null>(null);
   const [from, setFrom] = useState<Endpoint | null>(null);
   const [to, setTo] = useState<Endpoint | null>(null);
-  const [locating, setLocating] = useState(false);
+  const [destOpen, setDestOpen] = useState(false);
+  const [destQuery, setDestQuery] = useState('');
+  const [nearby, setNearby] = useState<StopPin[]>([]);
   const [recent, setRecent] = useState<RecentSearch[]>([]);
   const [departMode, setDepartMode] = useState<'now' | 'at'>('now');
   const [atTime, setAtTime] = useState<Date | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const fromResults = usePlaceSearch(from && fromText === from.name ? '' : fromText);
-  const toResults = usePlaceSearch(to && toText === to.name ? '' : toText);
+  const destResults = usePlaceSearch(to && destQuery === to.name ? '' : destQuery);
+
+  // Start = current location, preselected like Uber/Rapido.
+  useEffect(() => {
+    let live = true;
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') return;
+        const pos = await Location.getCurrentPositionAsync({});
+        if (!live) return;
+        const here = { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+        setUserLoc(here);
+        const ep = { name: t('myLocation'), lat: here.latitude, lon: here.longitude };
+        setFrom(ep);
+        setEndpoint('from', ep);
+        const stops = await api.nearby(here.latitude, here.longitude, 1000);
+        if (!live) return;
+        setNearby(
+          stops.slice(0, 12).map((s) => ({
+            latitude: s.lat,
+            longitude: s.lon,
+            stopId: s.stopId,
+            name: s.name,
+          })),
+        );
+      } catch {
+        // location off: rider picks start manually via pin drop
+      }
+    })();
+    return () => {
+      live = false;
+    };
+  }, []);
 
   // Re-read shared endpoints when returning from the pin-drop map.
   useFocusEffect(
     useCallback(() => {
       const ep = getEndpoints();
-      if (ep.from && ep.from !== from) {
-        setFrom(ep.from);
-        setFromText(ep.from.name);
-      }
+      if (ep.from && ep.from !== from) setFrom(ep.from);
       if (ep.to && ep.to !== to) {
         setTo(ep.to);
-        setToText(ep.to.name);
       }
+      api
+        .health()
+        .then((h: HealthStatus) => setHealth(`${h.status}`))
+        .catch(() => setHealth('offline'));
+      void getRecentSearches().then(setRecent);
     }, [from, to]),
   );
-
-  useEffect(() => {
-    api
-      .health()
-      .then((h: HealthStatus) => setHealth(`${h.status}`))
-      .catch(() => setHealth('offline'));
-    void getRecentSearches().then(setRecent);
-  }, []);
-
-  const choose = (which: 'from' | 'to', ep: Endpoint | null, text: string): void => {
-    setEndpoint(which, ep);
-    if (which === 'from') {
-      setFrom(ep);
-      setFromText(text);
-    } else {
-      setTo(ep);
-      setToText(text);
-    }
-  };
-
-  const useLocation = async (which: 'from' | 'to'): Promise<void> => {
-    setLocating(true);
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
-      const pos = await Location.getCurrentPositionAsync({});
-      choose(
-        which,
-        {
-          name: 'My location',
-          lat: pos.coords.latitude,
-          lon: pos.coords.longitude,
-        },
-        'My location',
-      );
-    } finally {
-      setLocating(false);
-    }
-  };
 
   const canSearch = from != null && to != null && (departMode === 'now' || atTime != null);
 
@@ -145,113 +143,69 @@ export default function Home(): React.JSX.Element {
     return `${h}:${m}`;
   };
 
-  const params = {
-    fromName: from?.name ?? '',
-    fromLat: String(from?.lat ?? ''),
-    fromLon: String(from?.lon ?? ''),
-    toName: to?.name ?? '',
-    toLat: String(to?.lat ?? ''),
-    toLon: String(to?.lon ?? ''),
-    ...(chosenWhen() ? { when: chosenWhen() as string } : {}),
+  const go = (): void => {
+    if (!from || !to) return;
+    router.push({
+      pathname: '/results',
+      params: {
+        fromName: from.name,
+        fromLat: String(from.lat),
+        fromLon: String(from.lon),
+        toName: to.name,
+        toLat: String(to.lat),
+        toLon: String(to.lon),
+        ...(chosenWhen() ? { when: chosenWhen() as string } : {}),
+      },
+    });
   };
 
-  const field = (
-    which: 'from' | 'to',
-    text: string,
-    setText: (s: string) => void,
-    results: Place[],
-  ): React.JSX.Element => (
-    <View style={styles.field}>
-      <View style={styles.inputRow}>
-        <Ionicons
-          name={which === 'from' ? 'locate-outline' : 'flag-outline'}
-          size={20}
-          color={theme.primary}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder={t(which === 'from' ? 'fromPlaceholder' : 'toPlaceholder')}
-          value={text}
-          onChangeText={(s) => {
-            setText(s);
-            choose(which, null, s);
-          }}
-        />
-        {text.length > 0 ? (
-          <Pressable onPress={() => choose(which, null, '')} hitSlop={12}>
-            <Ionicons name="close-circle" size={20} color={theme.muted} />
-          </Pressable>
-        ) : null}
-      </View>
-      {results.length > 0 ? (
-        <View style={styles.suggestBox}>
-          {results.map((item) => (
-            <Pressable
-              key={item.stopId ?? item.name}
-              style={styles.suggest}
-              onPress={() =>
-                choose(
-                  which,
-                  { name: item.name, lat: item.lat, lon: item.lon },
-                  item.name,
-                )
-              }
-            >
-              <Ionicons
-                name={item.kind === 'place' ? 'location-outline' : 'bus-outline'}
-                size={18}
-                color={theme.primary}
-              />
-              <Text style={styles.suggestText}>{item.name}</Text>
-            </Pressable>
-          ))}
-        </View>
-      ) : null}
-      <View style={styles.miniRow}>
-        <UiButton
-          title={t('useLocation')}
-          variant="secondary"
-          onPress={() => void useLocation(which)}
-          icon={<Ionicons name="navigate-outline" size={18} color={theme.primaryDark} />}
-        />
-        <UiButton
-          title={t('pinDrop')}
-          variant="secondary"
-          onPress={() => router.push({ pathname: '/pick', params: { target: which } })}
-          icon={<Ionicons name="map-outline" size={18} color={theme.primaryDark} />}
-        />
-      </View>
-    </View>
-  );
+  const pickDestination = (p: Place): void => {
+    const ep = { name: p.name, lat: p.lat, lon: p.lon };
+    setTo(ep);
+    setEndpoint('to', ep);
+    setDestOpen(false);
+    setDestQuery('');
+  };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <View style={styles.container}>
       <Stack.Screen options={{ title: t('appName') }} />
-      <Text style={type.h1}>{t('planTitle')}</Text>
-
-      <View style={styles.block}>
-        {field('from', fromText, setFromText, fromResults)}
-      </View>
-      <View style={styles.swapRow}>
-        <Pressable
-          style={styles.swap}
-          onPress={() => {
-            swapEndpoints();
-            const ep = getEndpoints();
-            setFrom(ep.from);
-            setTo(ep.to);
-            setFromText(ep.from?.name ?? '');
-            setToText(ep.to?.name ?? '');
+      <View style={styles.mapBox}>
+        <LeafletMap
+          mode="browse"
+          height={340}
+          center={userLoc ?? undefined}
+          user={userLoc}
+          stops={nearby}
+          onStopPress={(stopId) => {
+            const s = nearby.find((n) => n.stopId === stopId);
+            router.push({
+              pathname: '/stop',
+              params: { id: stopId, name: s?.name ?? '', lat: '', lon: '' },
+            });
           }}
-        >
-          <Ionicons name="swap-vertical" size={22} color="#fff" />
-        </Pressable>
-      </View>
-      <View style={styles.block}>
-        {field('to', toText, setToText, toResults)}
+        />
       </View>
 
-      <View style={styles.block}>
+      <View style={styles.sheet}>
+        <View style={styles.fromRow}>
+          <Ionicons name="locate-outline" size={18} color={theme.primary} />
+          <Text style={styles.fromText} numberOfLines={1}>
+            {from?.name ?? t('locating')}
+          </Text>
+          <Pressable
+            onPress={() => router.push({ pathname: '/pick', params: { target: 'from' } })}
+            hitSlop={12}
+          >
+            <Text style={styles.link}>{t('change')}</Text>
+          </Pressable>
+        </View>
+        <Pressable style={styles.where} onPress={() => setDestOpen(true)}>
+          <Ionicons name="search-outline" size={20} color={theme.primary} />
+          <Text style={to ? styles.whereText : styles.wherePlaceholder} numberOfLines={1}>
+            {to?.name ?? t('whereTo')}
+          </Text>
+        </Pressable>
         <View style={styles.segRow}>
           <Pressable
             style={departMode === 'now' ? styles.segOn : styles.segOff}
@@ -270,120 +224,170 @@ export default function Home(): React.JSX.Element {
             </Text>
           </Pressable>
           {departMode === 'at' ? (
-            <View style={styles.timeRow}>
-              <Pressable style={styles.timeBtn} onPress={() => setPickerOpen(true)}>
-                <Ionicons name="time-outline" size={20} color={theme.primary} />
-                <Text style={styles.timeText}>{atLabel()}</Text>
-              </Pressable>
-            </View>
-          ) : null}
-          {pickerOpen ? (
-            <DateTimePicker
-              value={atTime ?? new Date()}
-              mode="time"
-              is24Hour
-              display="clock"
-              onValueChange={(_e: unknown, d?: Date) => {
-                setPickerOpen(false);
-                if (d) setAtTime(d);
-              }}
-              onDismiss={() => setPickerOpen(false)}
-            />
+            <Pressable style={styles.timeBtn} onPress={() => setPickerOpen(true)}>
+              <Ionicons name="time-outline" size={20} color={theme.primary} />
+              <Text style={styles.timeText}>{atLabel()}</Text>
+            </Pressable>
           ) : null}
         </View>
-      </View>
-
-      {locating ? <ActivityIndicator color={theme.primary} /> : null}
-      <UiButton
-        title={
-          canSearch && chosenWhen()
-            ? `${t('search')} · ${atLabel()}`
-            : canSearch
-              ? `${t('search')} · ${t('departNow')}`
-              : t('search')
-        }
-        disabled={!canSearch}
-        onPress={() => router.push({ pathname: '/results', params })}
-        icon={<Ionicons name="search-outline" size={20} color="#fff" />}
-      />
-
-      {recent.length > 0 ? (
-        <View style={{ gap: 8 }}>
-          <Text style={type.h2}>{t('recent')}</Text>
-          {recent.slice(0, 3).map((r) => (
-            <Link
-              key={String(r.at)}
-              href={{
-                pathname: '/results',
-                params: {
-                  fromName: r.fromName,
-                  fromLat: String(r.fromLat),
-                  fromLon: String(r.fromLon),
-                  toName: r.toName,
-                  toLat: String(r.toLat),
-                  toLon: String(r.toLon),
-                },
-              }}
-              asChild
-            >
-              <Pressable style={styles.recentCard}>
+        {pickerOpen ? (
+          <DateTimePicker
+            value={atTime ?? new Date()}
+            mode="time"
+            is24Hour
+            display="clock"
+            onValueChange={(_e: unknown, d?: Date) => {
+              setPickerOpen(false);
+              if (d) setAtTime(d);
+            }}
+            onDismiss={() => setPickerOpen(false)}
+          />
+        ) : null}
+        <UiButton
+          title={
+            canSearch && chosenWhen()
+              ? `${t('search')} · ${atLabel()}`
+              : canSearch
+                ? `${t('search')} · ${t('departNow')}`
+                : t('search')
+          }
+          disabled={!canSearch}
+          onPress={go}
+          icon={<Ionicons name="search-outline" size={20} color="#fff" />}
+        />
+        {recent.length > 0 ? (
+          <View style={styles.recents}>
+            {recent.slice(0, 2).map((r) => (
+              <Pressable
+                key={String(r.at)}
+                style={styles.recentCard}
+                onPress={() => {
+                  setEndpoint('from', {
+                    name: r.fromName,
+                    lat: r.fromLat,
+                    lon: r.fromLon,
+                  });
+                  setFrom({ name: r.fromName, lat: r.fromLat, lon: r.fromLon });
+                  const ep = { name: r.toName, lat: r.toLat, lon: r.toLon };
+                  setTo(ep);
+                  setEndpoint('to', ep);
+                  router.push({
+                    pathname: '/results',
+                    params: {
+                      fromName: r.fromName,
+                      fromLat: String(r.fromLat),
+                      fromLon: String(r.fromLon),
+                      toName: r.toName,
+                      toLat: String(r.toLat),
+                      toLon: String(r.toLon),
+                      ...(chosenWhen() ? { when: chosenWhen() as string } : {}),
+                    },
+                  });
+                }}
+              >
                 <Ionicons name="time-outline" size={20} color={theme.primary} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.recentRoute} numberOfLines={1}>
                     {r.fromName} → {r.toName}
                   </Text>
-                  <Text style={type.small}>{fmtDateTime(r.at)}</Text>
                 </View>
                 <Ionicons name="chevron-forward" size={20} color={theme.muted} />
               </Pressable>
-            </Link>
-          ))}
-        </View>
-      ) : null}
-      <Text style={styles.health}>
-        API: {health} ({getBaseUrl()})
-      </Text>
-      <Text style={styles.credit}>{t('dataCredit')}</Text>
-    </ScrollView>
+            ))}
+          </View>
+        ) : null}
+        <Text style={styles.health}>
+          API: {health} ({getBaseUrl()})
+        </Text>
+        <Text style={styles.credit}>{t('dataCredit')}</Text>
+      </View>
+
+      <Modal visible={destOpen} animationType="slide" transparent>
+        <Pressable style={styles.sheetBg} onPress={() => setDestOpen(false)}>
+          <View style={styles.sheetBox}>
+            <Text style={type.h2}>{t('whereTo')}</Text>
+            <View style={styles.searchRow}>
+              <Ionicons name="search-outline" size={20} color={theme.primary} />
+              <TextInput
+                style={styles.input}
+                placeholder={t('toPlaceholder')}
+                value={destQuery}
+                onChangeText={setDestQuery}
+                autoFocus
+              />
+            </View>
+            {destResults.length > 0 ? (
+              <View style={styles.suggestBox}>
+                {destResults.map((item) => (
+                  <Pressable
+                    key={item.stopId ?? `${item.lat},${item.lon}`}
+                    style={styles.suggest}
+                    onPress={() => pickDestination(item)}
+                  >
+                    <Ionicons
+                      name={item.kind === 'place' ? 'location-outline' : 'bus-outline'}
+                      size={18}
+                      color={theme.primary}
+                    />
+                    <Text style={styles.suggestText}>{item.name}</Text>
+                  </Pressable>
+                ))}
+              </View>
+            ) : null}
+            <UiButton
+              title={t('pinDrop')}
+              variant="secondary"
+              onPress={() => {
+                setDestOpen(false);
+                router.push({ pathname: '/pick', params: { target: 'to' } });
+              }}
+              icon={<Ionicons name="map-outline" size={18} color={theme.primaryDark} />}
+            />
+            <UiButton
+              title={t('swap')}
+              variant="ghost"
+              onPress={() => {
+                swapEndpoints();
+                const ep = getEndpoints();
+                setFrom(ep.from);
+                setTo(ep.to);
+                setDestOpen(false);
+              }}
+            />
+          </View>
+        </Pressable>
+      </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flexGrow: 1, padding: 16, gap: 10, backgroundColor: theme.bg },
-  block: { ...cardBase, padding: 14, gap: 10 },
-  field: { gap: 8 },
-  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  input: {
+  container: { flex: 1, backgroundColor: theme.bg },
+  mapBox: { height: 340 },
+  sheet: {
     flex: 1,
-    borderWidth: 1,
-    borderColor: theme.border,
-    borderRadius: 12,
-    padding: 12,
-    backgroundColor: '#F8F9FA',
-    fontSize: 16,
-    color: theme.text,
+    gap: 10,
+    padding: 16,
+    marginTop: -24,
+    backgroundColor: theme.bg,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
   },
-  suggestBox: { gap: 2 },
-  suggest: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
-  suggestText: { fontSize: 15, color: theme.text },
-  miniRow: { flexDirection: 'row', gap: 8 },
-  swapRow: { alignItems: 'flex-end', marginVertical: -4 },
-  swap: {
-    backgroundColor: theme.primary,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+  fromRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  fromText: { flex: 1, fontSize: 15, fontWeight: '600', color: theme.text },
+  link: { color: theme.primary, fontWeight: '700' },
+  where: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    padding: 16,
+    minHeight: 56,
   },
+  whereText: { fontSize: 17, fontWeight: '700', color: theme.text, flex: 1 },
+  wherePlaceholder: { fontSize: 17, color: theme.muted, flex: 1 },
   segRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  segBase: {
-    paddingHorizontal: 16,
-    minHeight: theme.tap,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   segOn: {
     paddingHorizontal: 16,
     minHeight: theme.tap,
@@ -400,9 +404,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#EDF0F3',
   },
-  segTextOff: { fontWeight: '700', color: theme.muted },
   segTextOn: { fontWeight: '700', color: '#fff' },
-  timeRow: { flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' },
+  segTextOff: { fontWeight: '700', color: theme.muted },
   timeBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -413,6 +416,7 @@ const styles = StyleSheet.create({
     minHeight: theme.tap,
   },
   timeText: { fontSize: 17, fontWeight: '700', color: theme.text },
+  recents: { gap: 8 },
   recentCard: {
     ...cardBase,
     flexDirection: 'row',
@@ -421,41 +425,22 @@ const styles = StyleSheet.create({
     padding: 14,
   },
   recentRoute: { fontSize: 15, fontWeight: '700', color: theme.text },
-  city: {
+  searchRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    alignSelf: 'flex-start',
-    backgroundColor: '#E7F2ED',
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    minHeight: 40,
-  },
-  cityText: { fontWeight: '700', color: theme.primaryDark },
-  sheet: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    justifyContent: 'flex-end',
-  },
-  sheetBox: { padding: 20, gap: 6, borderRadius: 20, margin: 12 },
-  cityRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
+    gap: 8,
+    backgroundColor: '#fff',
     borderColor: theme.border,
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
   },
-  soon: {
-    marginLeft: 'auto',
-    fontSize: 12,
-    fontWeight: '700',
-    color: theme.warning,
-    backgroundColor: theme.warningBg,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  health: { marginTop: 8, opacity: 0.6 },
+  input: { flex: 1, padding: 12, fontSize: 16, color: theme.text },
+  suggestBox: { gap: 2, maxHeight: 320 },
+  suggest: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
+  suggestText: { fontSize: 15, color: theme.text, flex: 1 },
+  sheetBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
+  sheetBox: { ...cardBase, padding: 20, gap: 10, margin: 12, maxHeight: '80%' },
+  health: { opacity: 0.6 },
   credit: { opacity: 0.5, fontSize: 12 },
 });
