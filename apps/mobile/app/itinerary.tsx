@@ -2,7 +2,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { Itinerary, Leg } from '@hyd/shared';
-import { getItinerary } from '../src/api/itinerary-store';
+import { getItinerary, getLastSearch } from '../src/api/itinerary-store';
 import { fmtTime } from '../src/api/format';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
@@ -70,11 +70,26 @@ export default function ItineraryDetail(): React.JSX.Element {
     );
   }
   const trip: Itinerary = it;
+  const last = getLastSearch();
+  const backTo = {
+    ...(last ?? {
+      fromName: trip.legs[0]?.from.name ?? '',
+      fromLat: String(trip.legs[0]?.from.lat ?? ''),
+      fromLon: String(trip.legs[0]?.from.lon ?? ''),
+      toName: trip.legs[trip.legs.length - 1]?.to.name ?? '',
+      toLat: String(trip.legs[trip.legs.length - 1]?.to.lat ?? ''),
+      toLon: String(trip.legs[trip.legs.length - 1]?.to.lon ?? ''),
+    }),
+    ...(last?.when ? { when: last.when } : {}),
+  };
   return (
     <View style={styles.page}>
       <ScrollView contentContainerStyle={styles.container}>
       <Stack.Screen
-        options={{ title: t('resultsTitle'), headerLeft: () => <ScreenBack /> }}
+        options={{
+          title: t('resultsTitle'),
+          headerLeft: () => <ScreenBack to={{ pathname: '/results', params: backTo }} />,
+        }}
       />
       <MapView itinerary={trip} />
       <View style={styles.summary}>

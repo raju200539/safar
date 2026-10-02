@@ -27,3 +27,24 @@ export function putSearch(key: string, items: Itinerary[]): void {
 export function getSearch(key: string): Itinerary[] | null {
   return searches.get(key) ?? null;
 }
+
+export interface SearchParams {
+  fromName: string;
+  fromLat: string;
+  fromLon: string;
+  toName: string;
+  toLat: string;
+  toLon: string;
+  when?: string;
+}
+
+let lastParams: SearchParams | null = null;
+
+/** Remembered on every results search so Trip-back always has somewhere to go. */
+export function putLastSearch(p: SearchParams): void {
+  lastParams = p;
+}
+
+export function getLastSearch(): SearchParams | null {
+  return lastParams;
+}

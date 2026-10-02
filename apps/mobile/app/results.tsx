@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiError, api, addRecentSearch } from '../src/api/client';
-import { getSearch, putItinerary, putSearch } from '../src/api/itinerary-store';
+import { getLastSearch, getSearch, putItinerary, putLastSearch, putSearch } from '../src/api/itinerary-store';
 import { fmtTime } from '../src/api/format';
 import { EmptyState } from '../src/ui/EmptyState';
 import { animateLayout } from '../src/ui/anim';
@@ -63,6 +63,15 @@ export default function Results(): React.JSX.Element {
     const fromLon = Number(p.fromLon);
     const toLat = Number(p.toLat);
     const toLon = Number(p.toLon);
+    putLastSearch({
+      fromName: p.fromName ?? '',
+      fromLat: p.fromLat ?? '',
+      fromLon: p.fromLon ?? '',
+      toName: p.toName ?? '',
+      toLat: p.toLat ?? '',
+      toLon: p.toLon ?? '',
+      ...(p.when ? { when: p.when } : {}),
+    });
     const key = `${p.fromLat},${p.fromLon}|${p.toLat},${p.toLon}|${p.when ?? ''}|${modeFilter}`;
     const cached = getSearch(key);
     if (cached) setState({ kind: 'done', items: cached });
