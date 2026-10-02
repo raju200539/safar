@@ -2,8 +2,6 @@ import { Link, Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
-  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -72,7 +70,6 @@ export default function Home(): React.JSX.Element {
   const [departMode, setDepartMode] = useState<'now' | 'at'>('now');
   const [atTime, setAtTime] = useState<Date | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [cityOpen, setCityOpen] = useState(false);
   const fromResults = useStopSearch(from && fromText === from.name ? '' : fromText);
   const toResults = useStopSearch(to && toText === to.name ? '' : toText);
 
@@ -226,38 +223,6 @@ export default function Home(): React.JSX.Element {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Stack.Screen options={{ title: t('appName') }} />
-      <Pressable style={styles.city} onPress={() => setCityOpen(true)}>
-        <Ionicons name="location-outline" size={20} color={theme.primary} />
-        <Text style={styles.cityText}>{t('currentCity')}</Text>
-        <Ionicons name="chevron-down" size={18} color={theme.muted} />
-      </Pressable>
-      <Modal visible={cityOpen} transparent animationType="fade">
-        <Pressable style={styles.sheet} onPress={() => setCityOpen(false)}>
-          <View style={[shadows.card, styles.sheetBox]}>
-            <Text style={type.h2}>{t('changeCity')}</Text>
-            {['Hyderabad', 'Bengaluru', 'Chennai', 'Delhi', 'Mumbai'].map((c) => {
-              const live = c === 'Hyderabad';
-              return (
-                <Pressable
-                  key={c}
-                  style={styles.cityRow}
-                  onPress={() => {
-                    if (live) setCityOpen(false);
-                    else Alert.alert(t('comingSoon'), t('cityLocked'));
-                  }}
-                >
-                  <Text style={styles.cityText}>{c}</Text>
-                  {live ? (
-                    <Ionicons name="checkmark-circle" size={20} color={theme.live} />
-                  ) : (
-                    <Text style={styles.soon}>{t('comingSoon')}</Text>
-                  )}
-                </Pressable>
-              );
-            })}
-          </View>
-        </Pressable>
-      </Modal>
       <Text style={type.h1}>{t('planTitle')}</Text>
 
       <View style={[shadows.card, styles.block]}>

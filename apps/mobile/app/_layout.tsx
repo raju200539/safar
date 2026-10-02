@@ -4,6 +4,7 @@ import { Tabs } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../src/ui/theme';
+import { AppHeader } from '../src/components/AppHeader';
 import { BrandMark } from '../src/components/BrandMark';
 
 void SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -65,6 +66,7 @@ export default function Layout(): React.JSX.Element {
         <Tabs.Screen
           name="index"
           options={{
+            headerTitle: () => <AppHeader />,
             title: 'Plan',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="search-outline" color={color} size={size} />
@@ -74,6 +76,7 @@ export default function Layout(): React.JSX.Element {
         <Tabs.Screen
           name="stops"
           options={{
+            headerTitle: () => <AppHeader />,
             title: 'Stops',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="bus-outline" color={color} size={size} />
