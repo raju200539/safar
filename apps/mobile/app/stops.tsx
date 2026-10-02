@@ -14,6 +14,7 @@ import * as Location from 'expo-location';
 import { useTranslation } from 'react-i18next';
 import { api } from '../src/api/client';
 import type { Place } from '@hyd/shared';
+import { theme } from '../src/ui/theme';
 import '../src/i18n';
 
 export default function Stops(): React.JSX.Element {
@@ -79,7 +80,15 @@ export default function Stops(): React.JSX.Element {
         keyExtractor={(p) => p.stopId ?? `${p.lat},${p.lon}`}
         renderItem={({ item }) => (
           <Link
-            href={{ pathname: '/stop', params: { id: item.stopId, name: item.name } }}
+            href={{
+              pathname: '/stop',
+              params: {
+                id: item.stopId,
+                name: item.name,
+                lat: String(item.lat),
+                lon: String(item.lon),
+              },
+            }}
             asChild
           >
             <Pressable style={styles.row}>
@@ -94,7 +103,7 @@ export default function Stops(): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 8 },
+  container: { flex: 1, padding: 16, gap: 8, backgroundColor: theme.bg },
   input: { borderWidth: 1, borderRadius: 8, padding: 12 },
   row: { paddingVertical: 10, borderBottomWidth: 1 },
   name: { fontWeight: '600' },

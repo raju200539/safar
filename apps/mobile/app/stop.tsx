@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { api, getDeviceId } from '../src/api/client';
+import { openStopDirections } from '../src/api/navigate';
+import { shadows, theme } from '../src/ui/theme';
 import type { Arrival, Report } from '@hyd/shared';
 import '../src/i18n';
 
@@ -25,7 +27,12 @@ function fmtTime(iso: string): string {
 
 export default function Stop(): React.JSX.Element {
   const { t } = useTranslation();
-  const { id, name } = useLocalSearchParams<{ id?: string; name?: string }>();
+  const { id, name, lat, lon } = useLocalSearchParams<{
+    id?: string;
+    name?: string;
+    lat?: string;
+    lon?: string;
+  }>();
   const [arrivals, setArrivals] = useState<Arrival[] | null>(null);
   const [reports, setReports] = useState<Report[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +75,12 @@ export default function Stop(): React.JSX.Element {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Stack.Screen options={{ title: name ?? t('stopTitle') }} />
+      {lat != null && lon != null ? (
+        <Button
+          title={t('directionsToStop')}
+          onPress={() => void openStopDirections(Number(lat), Number(lon), name ?? t('stopTitle'))}
+        />
+      ) : null}
       {error ? <Text>{error}</Text> : null}
       <Text style={styles.h}>{t('departures')}</Text>
       {arrivals == null ? <ActivityIndicator /> : null}
@@ -126,10 +139,17 @@ export default function Stop(): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 10 },
-  h: { fontSize: 16, fontWeight: '700', marginTop: 8 },
-  row: { borderBottomWidth: 1, paddingVertical: 8, gap: 2 },
-  bus: { fontWeight: '600' },
+  container: { padding: 16, gap: 10, backgroundColor: theme.bg },
+  h: { fontSize: 16, fontWeight: '700', marginTop: 8, color: theme.text },
+  row: {
+    backgroundColor: theme.card,
+    borderColor: theme.border,
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    gap: 2,
+  },
+  bus: { fontWeight: '600', color: theme.text },
   input: { borderWidth: 1, borderRadius: 8, padding: 12 },
   types: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
 });

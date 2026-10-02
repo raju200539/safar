@@ -1,9 +1,24 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Button, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import type { Itinerary, Leg } from '@hyd/shared';
 import { getItinerary } from '../src/api/itinerary-store';
+import { openWalkDirections } from '../src/api/navigate';
 import { MapView } from '../src/components/MapView';
+import { shadows, theme } from '../src/ui/theme';
 import '../src/i18n';
+
+function modeColor(mode: Leg['mode']): string {
+  if (mode === 'BUS') return theme.bus;
+  if (mode === 'METRO') return theme.metro;
+  return theme.walk;
+}
+
+function modeIcon(mode: Leg['mode']): string {
+  if (mode === 'BUS') return '🚌';
+  if (mode === 'METRO') return '🚇';
+  return '🚶';
+}
 
 export default function ItineraryDetail(): React.JSX.Element {
   const { t } = useTranslation();
@@ -11,7 +26,7 @@ export default function ItineraryDetail(): React.JSX.Element {
   let it = id ? getItinerary(id) : null;
   if (!it && data) {
     try {
-      it = JSON.parse(data) as import('@hyd/shared').Itinerary;
+      it = JSON.parse(data) as Itinerary;
     } catch {
       it = null;
     }
@@ -23,38 +38,80 @@ export default function ItineraryDetail(): React.JSX.Element {
       </View>
     );
   }
+  const trip: Itinerary = it;
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Stack.Screen options={{ title: t('resultsTitle') }} />
-      <MapView itinerary={it} />
-      {it.legs.map((leg, i) => (
-        <View key={`${it?.id}-${i}`} style={styles.leg}>
-          <Text style={styles.mode}>
-            {leg.mode === 'WALK' ? '🚶' : leg.mode === 'BUS' ? '🚌' : '🚇'} {leg.mode}
-            {leg.live ? ` · ${t('live')}` : ''}
-          </Text>
-          <Text style={styles.meta}>
-            {leg.mode === 'WALK' && leg.distanceM != null
-              ? `${Math.round(leg.distanceM)} m · `
-              : ''}
-            {Math.max(1, Math.round(leg.durationSec / 60))} min
-          </Text>
-          <Text>{leg.instruction}</Text>
-          {leg.intermediateStops && leg.intermediateStops.length > 0 ? (
-            <Text style={styles.stops}>
-              {leg.intermediateStops.map((s) => s.name).join(' · ')}
-            </Text>
-          ) : null}
-        </View>
-      ))}
+      <MapView itinerary={trip} />
+      {trip.legs.map((leg, i) => {
+        const last = i === trip.legs.length - 1;
+        return (
+          <View key={`${trip.id}-${i}`} style={styles.row}>
+            <View style={styles.rail}>
+              <View style={[styles.dot, { backgroundColor: modeColor(leg.mode) }]} />
+              {last ? null : <View style={styles.line} />}
+            </View>
+            <View style={[styles.card, shadows.card]}>
+              <View style={styles.badgeRow}>
+                <Text style={[styles.badge, { backgroundColor: modeColor(leg.mode) }]}>
+                  {modeIcon(leg.mode)} {leg.mode}
+                  {leg.route?.shortName && leg.mode !== 'WALK'
+                    ? ` · ${leg.route.shortName}`
+                    : ''}
+                </Text>
+                {leg.live ? <Text style={styles.live}>· {t('live')}</Text> : null}
+              </View>
+              <Text style={styles.instruction}>{leg.instruction}</Text>
+              <Text style={styles.meta}>
+                {leg.mode === 'WALK' && leg.distanceM != null
+                  ? `${Math.round(leg.distanceM)} m · `
+                  : ''}
+                {Math.max(1, Math.round(leg.durationSec / 60))} min
+              </Text>
+              {leg.intermediateStops && leg.intermediateStops.length > 0 ? (
+                <Text style={styles.stops}>
+                  {leg.intermediateStops.map((s) => s.name).join(' · ')}
+                </Text>
+              ) : null}
+              {leg.mode === 'WALK' ? (
+                <Button
+                  title={t('navigateWalk')}
+                  onPress={() =>
+                    void openWalkDirections(
+                      leg.from.lat,
+                      leg.from.lon,
+                      leg.to.lat,
+                      leg.to.lon,
+                    )
+                  }
+                />
+              ) : null}
+            </View>
+          </View>
+        );
+      })}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 12 },
-  leg: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 4 },
-  mode: { fontWeight: '700' },
-  meta: { opacity: 0.6 },
-  stops: { opacity: 0.7 },
+  container: { padding: 16, gap: 4, backgroundColor: theme.bg },
+  row: { flexDirection: 'row', gap: 10 },
+  rail: { alignItems: 'center', width: 16, paddingTop: 18 },
+  dot: { width: 12, height: 12, borderRadius: 6 },
+  line: { width: 2, flex: 1, backgroundColor: theme.border, marginTop: 2 },
+  card: { flex: 1, padding: 12, gap: 6, marginBottom: 10 },
+  badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  badge: {
+    color: '#fff',
+    fontWeight: '700',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    overflow: 'hidden',
+  },
+  live: { color: theme.live, fontWeight: '700' },
+  instruction: { fontSize: 15, color: theme.text },
+  meta: { color: theme.muted },
+  stops: { color: theme.muted },
 });

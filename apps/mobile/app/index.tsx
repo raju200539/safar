@@ -26,6 +26,7 @@ import {
   type Endpoint,
 } from '../src/api/endpoints';
 import type { HealthStatus, Place } from '@hyd/shared';
+import { shadows, theme } from '../src/ui/theme';
 import '../src/i18n';
 
 function useStopSearch(query: string): Place[] {
@@ -193,7 +194,9 @@ export default function Home(): React.JSX.Element {
       <Stack.Screen options={{ title: t('appName') }} />
       <Text style={styles.title}>{t('planTitle')}</Text>
 
-      {field('from', fromText, setFromText, fromResults)}
+      <View style={[shadows.card, styles.block]}>
+        {field('from', fromText, setFromText, fromResults)}
+      </View>
       <Button
         title={t('swap')}
         onPress={() => {
@@ -205,7 +208,9 @@ export default function Home(): React.JSX.Element {
           setToText(ep.to?.name ?? '');
         }}
       />
-      {field('to', toText, setToText, toResults)}
+      <View style={[shadows.card, styles.block]}>
+        {field('to', toText, setToText, toResults)}
+      </View>
 
       {locating ? <ActivityIndicator /> : null}
       <View style={styles.row}>
@@ -279,11 +284,19 @@ export default function Home(): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 8 },
-  title: { fontSize: 22, fontWeight: '600' },
-  sub: { fontSize: 16, fontWeight: '600', marginTop: 8 },
-  input: { borderWidth: 1, borderRadius: 8, padding: 12 },
-  suggest: { padding: 10, borderBottomWidth: 1 },
+  container: { flexGrow: 1, padding: 16, gap: 10, backgroundColor: theme.bg },
+  title: { fontSize: 24, fontWeight: '700', color: theme.text },
+  sub: { fontSize: 16, fontWeight: '600', marginTop: 8, color: theme.text },
+  block: { padding: 12, gap: 8 },
+  input: {
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 10,
+    padding: 12,
+    backgroundColor: '#fff',
+    fontSize: 16,
+  },
+  suggest: { padding: 10, borderBottomWidth: 1, borderColor: theme.border },
   row: { flexDirection: 'row', gap: 8 },
   time: { width: 64 },
   health: { marginTop: 8, opacity: 0.6 },

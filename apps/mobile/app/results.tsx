@@ -10,6 +10,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { ApiError, api, addRecentSearch } from '../src/api/client';
 import { putItinerary } from '../src/api/itinerary-store';
+import { shadows, theme } from '../src/ui/theme';
 import type { Itinerary } from '@hyd/shared';
 import '../src/i18n';
 
@@ -114,17 +115,16 @@ export default function Results(): React.JSX.Element {
             const longWalk = it.walkDistanceM > 1500;
             return (
               <Link key={it.id} href={{ pathname: '/itinerary', params: { id } }} asChild>
-                <Pressable style={styles.card}>
+                <Pressable style={[styles.card, shadows.card]}>
                   <Text style={styles.times}>
-                    {fmtTime(it.startTime)} – {fmtTime(it.endTime)} · {fmtDur(it.durationSec)}
+                    {fmtTime(it.startTime)} – {fmtTime(it.endTime)}
                   </Text>
-                  <Text>
+                  <Text style={styles.dur}>{fmtDur(it.durationSec)}</Text>
+                  <Text style={styles.stages}>{stageSummary(it, t('walk'))}</Text>
+                  <Text style={styles.meta}>
                     {it.transfers} {it.transfers === 1 ? t('transfer') : t('transfers')} ·{' '}
                     {Math.round(it.walkDistanceM)} m {t('walk')}
                     {longWalk ? ` · ${t('longWalk')}` : ''}
-                  </Text>
-                  <Text numberOfLines={3} style={styles.legs}>
-                    {stageSummary(it, t('walk'))}
                   </Text>
                 </Pressable>
               </Link>
@@ -136,10 +136,12 @@ export default function Results(): React.JSX.Element {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 12 },
-  route: { fontSize: 16, fontWeight: '600' },
+  container: { flex: 1, padding: 16, gap: 12, backgroundColor: theme.bg },
+  route: { fontSize: 16, fontWeight: '600', color: theme.text },
   notice: { opacity: 0.7, fontStyle: 'italic' },
-  card: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 4 },
-  times: { fontSize: 17, fontWeight: '700' },
-  legs: { opacity: 0.8 },
+  card: { padding: 14, gap: 4 },
+  times: { fontSize: 19, fontWeight: '700', color: theme.text },
+  dur: { fontSize: 15, fontWeight: '600', color: theme.primary },
+  stages: { fontSize: 14, color: theme.text },
+  meta: { fontSize: 13, color: theme.muted },
 });
