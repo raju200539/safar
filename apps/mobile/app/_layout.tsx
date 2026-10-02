@@ -8,6 +8,7 @@ export default function Layout(): React.JSX.Element {
       <Tabs.Screen name="results" options={{ href: null }} />
       <Tabs.Screen name="itinerary" options={{ href: null }} />
       <Tabs.Screen name="stop" options={{ href: null }} />
+      <Tabs.Screen name="pick" options={{ href: null }} />
     </Tabs>
   );
 }

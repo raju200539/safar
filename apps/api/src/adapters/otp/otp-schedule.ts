@@ -9,6 +9,7 @@ import {
   STOP_DEPARTURES_QUERY,
 } from './gtfs-queries';
 import {
+  dedupePlaces,
   mapDepartures,
   mapStop,
   type OtpStopNode,
@@ -31,7 +32,7 @@ export class OtpSchedule implements TransitSchedule {
       const p = mapStop(s);
       if (p) out.push(p);
     }
-    return out;
+    return dedupePlaces(out);
   }
 
   async nearbyStops(
@@ -62,7 +63,7 @@ export class OtpSchedule implements TransitSchedule {
       if (place) out.push(place);
       if (out.length >= MAX_LIMIT) break;
     }
-    return out;
+    return dedupePlaces(out);
   }
 
   async departures(stopId: string, limit: number): Promise<Arrival[]> {

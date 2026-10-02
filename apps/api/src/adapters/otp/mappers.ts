@@ -127,8 +127,32 @@ function toIntermediate(stop: OtpStopRef): Place {
   };
 }
 
+const METRO_LINES: Record<string, string> = {
+  RED: 'Red Line',
+  GREEN: 'Green Line',
+  BLUE: 'Blue Line',
+};
+
+function metroLineName(
+  gtfsId: string | null | undefined,
+  shortName: string | null | undefined,
+): string | null {
+  const tail = (gtfsId ?? '').split(':').pop()?.toUpperCase() ?? '';
+  if (tail && METRO_LINES[tail]) return METRO_LINES[tail];
+  const upper = (shortName ?? '').toUpperCase();
+  for (const [code, name] of Object.entries(METRO_LINES)) {
+    if (upper.includes(code)) return name;
+  }
+  return null;
+}
+
 function shortNameOf(leg: OtpLeg): string {
-  if (leg.route?.shortName) return leg.route.shortName;
+  if (leg.route?.shortName) {
+    // HMRL shortNames are codes ("C1_RED"): show "Red Line" instead.
+    const metro = metroLineName(leg.route.gtfsId, leg.route.shortName);
+    if (metro) return metro;
+    return leg.route.shortName;
+  }
   // TGSRTC GTFS has no route_short_name: fall back to the feed-scoped id
   // ("tgsrtc:219" -> "219") so riders still see a bus number.
   const gtfsId = leg.route?.gtfsId ?? leg.trip?.gtfsId ?? '';
@@ -224,6 +248,45 @@ export function mapStop(s: OtpStopNode): Place | null {
     lon: Number(s.lon),
     stopId: s.gtfsId,
   };
+}
+
+/**
+ * The feed has one stop per direction, so "Koti" matches 2+ rows.
+ * Group by normalized name, merging stops within a short walk of each
+ * other, so each place appears once in search/nearby results.
+ */
+export function dedupePlaces(places: Place[], mergeRadiusM = 200): Place[] {
+  const out: Place[] = [];
+  for (const p of places) {
+    const key = p.name.trim().toLowerCase();
+    const existing = out.find(
+      (q) =>
+        q.name.trim().toLowerCase() === key &&
+        haversineM(q.lat, q.lon, p.lat, p.lon) <= mergeRadiusM,
+    );
+    if (!existing) {
+      out.push(p);
+      continue;
+    }
+    // Keep the first stopId (stable); nothing else to merge for v1.
+  }
+  return out;
+}
+
+function haversineM(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number,
+): number {
+  const r = 6371000;
+  const toRad = (d: number): number => (d * Math.PI) / 180;
+  const a =
+    Math.sin(toRad(lat2 - lat1) / 2) ** 2 +
+    Math.cos(toRad(lat1)) *
+      Math.cos(toRad(lat2)) *
+      Math.sin(toRad(lon2 - lon1) / 2) ** 2;
+  return 2 * r * Math.asin(Math.sqrt(a));
 }
 
 export interface OtpStoptime {

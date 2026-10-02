@@ -1,6 +1,9 @@
 import type { TripPlanner } from '../../ports/trip-planner';
 import type { PlanQuery } from '../../application/plan-trip';
-import { MAX_ITINERARIES } from '../../application/plan-trip';
+import {
+  MAX_ITINERARIES,
+  PLANNER_REQUEST_COUNT,
+} from '../../application/plan-trip';
 import { OtpClient } from './otp-client';
 import { PLAN_QUERY } from './gtfs-queries';
 import { mapItinerary, type OtpItinerary } from './mappers';
@@ -40,7 +43,7 @@ export class OtpPlanner implements TripPlanner {
       },
       dateTime: toOtpDateTime(when, arriveBy),
       modes: { transit: { transit: TRANSIT_MODES } },
-      first: MAX_ITINERARIES,
+      first: PLANNER_REQUEST_COUNT,
     });
     const edges = data.planConnection?.edges ?? [];
     const mapped: Itinerary[] = [];

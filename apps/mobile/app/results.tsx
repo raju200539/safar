@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { ApiError, api, addRecentSearch } from '../src/api/client';
+import { putItinerary } from '../src/api/itinerary-store';
 import type { Itinerary } from '@hyd/shared';
 import '../src/i18n';
 
@@ -90,29 +91,30 @@ export default function Results(): React.JSX.Element {
         <Text>{t('noTrips')}</Text>
       ) : null}
       {state.kind === 'done'
-        ? state.items.map((it) => (
-            <Link
-              key={it.id}
-              href={{ pathname: '/itinerary', params: { data: JSON.stringify(it) } }}
-              asChild
-            >
-              <Pressable style={styles.card}>
-                <Text style={styles.times}>
-                  {fmtTime(it.startTime)} – {fmtTime(it.endTime)} · {fmtDur(it.durationSec)}
-                </Text>
-                <Text>
-                  {it.transfers} {it.transfers === 1 ? t('transfer') : t('transfers')} ·{' '}
-                  {Math.round(it.walkDistanceM)} m {t('walk')}
-                </Text>
-                <Text numberOfLines={2} style={styles.legs}>
-                  {it.legs
-                    .filter((l) => l.mode !== 'WALK')
-                    .map((l) => `${l.mode === 'BUS' ? '🚌' : '🚇'} ${l.route?.shortName ?? ''}`)
-                    .join('  →  ')}
-                </Text>
-              </Pressable>
-            </Link>
-          ))
+        ? state.items.map((it) => {
+            const id = putItinerary(it);
+            const longWalk = it.walkDistanceM > 1500;
+            return (
+              <Link key={it.id} href={{ pathname: '/itinerary', params: { id } }} asChild>
+                <Pressable style={styles.card}>
+                  <Text style={styles.times}>
+                    {fmtTime(it.startTime)} – {fmtTime(it.endTime)} · {fmtDur(it.durationSec)}
+                  </Text>
+                  <Text>
+                    {it.transfers} {it.transfers === 1 ? t('transfer') : t('transfers')} ·{' '}
+                    {Math.round(it.walkDistanceM)} m {t('walk')}
+                    {longWalk ? ` · ${t('longWalk')}` : ''}
+                  </Text>
+                  <Text numberOfLines={2} style={styles.legs}>
+                    {it.legs
+                      .filter((l) => l.mode !== 'WALK')
+                      .map((l) => `${l.mode === 'BUS' ? '🚌' : '🚇'} ${l.route?.shortName ?? ''}`)
+                      .join('  →  ')}
+                  </Text>
+                </Pressable>
+              </Link>
+            );
+          })
         : null}
     </View>
   );

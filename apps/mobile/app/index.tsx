@@ -1,10 +1,11 @@
-import { Link, Stack, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { Link, Stack, useFocusEffect, useRouter } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Button,
   FlatList,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -12,15 +13,20 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import { useTranslation } from 'react-i18next';
-import { api, getBaseUrl, getRecentSearches, type RecentSearch } from '../src/api/client';
+import {
+  api,
+  getBaseUrl,
+  getRecentSearches,
+  type RecentSearch,
+} from '../src/api/client';
+import {
+  getEndpoints,
+  setEndpoint,
+  swapEndpoints,
+  type Endpoint,
+} from '../src/api/endpoints';
 import type { HealthStatus, Place } from '@hyd/shared';
 import '../src/i18n';
-
-interface Endpoint {
-  name: string;
-  lat: number;
-  lon: number;
-}
 
 function useStopSearch(query: string): Place[] {
   const [results, setResults] = useState<Place[]>([]);
@@ -61,6 +67,21 @@ export default function Home(): React.JSX.Element {
   const fromResults = useStopSearch(from && fromText === from.name ? '' : fromText);
   const toResults = useStopSearch(to && toText === to.name ? '' : toText);
 
+  // Re-read shared endpoints when returning from the pin-drop map.
+  useFocusEffect(
+    useCallback(() => {
+      const ep = getEndpoints();
+      if (ep.from && ep.from !== from) {
+        setFrom(ep.from);
+        setFromText(ep.from.name);
+      }
+      if (ep.to && ep.to !== to) {
+        setTo(ep.to);
+        setToText(ep.to.name);
+      }
+    }, [from, to]),
+  );
+
   useEffect(() => {
     api
       .health()
@@ -69,24 +90,28 @@ export default function Home(): React.JSX.Element {
     void getRecentSearches().then(setRecent);
   }, []);
 
+  const choose = (which: 'from' | 'to', ep: Endpoint | null, text: string): void => {
+    setEndpoint(which, ep);
+    if (which === 'from') {
+      setFrom(ep);
+      setFromText(text);
+    } else {
+      setTo(ep);
+      setToText(text);
+    }
+  };
+
   const useLocation = async (which: 'from' | 'to'): Promise<void> => {
     setLocating(true);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') return;
       const pos = await Location.getCurrentPositionAsync({});
-      const ep = {
+      choose(which, {
         name: 'My location',
         lat: pos.coords.latitude,
         lon: pos.coords.longitude,
-      };
-      if (which === 'from') {
-        setFrom(ep);
-        setFromText(ep.name);
-      } else {
-        setTo(ep);
-        setToText(ep.name);
-      }
+      }, 'My location');
     } finally {
       setLocating(false);
     }
@@ -102,38 +127,32 @@ export default function Home(): React.JSX.Element {
     toLon: String(to?.lon ?? ''),
   };
 
-  const pick = (
-    p: Place,
+  const field = (
     which: 'from' | 'to',
+    text: string,
     setText: (s: string) => void,
-    setEp: (e: Endpoint) => void,
-  ): void => {
-    setEp({ name: p.name, lat: p.lat, lon: p.lon });
-    setText(p.name);
-  };
-
-  return (
-    <View style={styles.container}>
-      <Stack.Screen options={{ title: t('appName') }} />
-      <Text style={styles.title}>{t('planTitle')}</Text>
-
+    results: Place[],
+  ): React.JSX.Element => (
+    <View>
       <TextInput
         style={styles.input}
-        placeholder={t('fromPlaceholder')}
-        value={fromText}
+        placeholder={t(which === 'from' ? 'fromPlaceholder' : 'toPlaceholder')}
+        value={text}
         onChangeText={(s) => {
-          setFromText(s);
-          setFrom(null);
+          setText(s);
+          choose(which, null, s);
         }}
       />
-      {fromResults.length > 0 ? (
+      {results.length > 0 ? (
         <FlatList
-          data={fromResults}
+          data={results}
           keyExtractor={(p) => p.stopId ?? p.name}
           renderItem={({ item }) => (
             <Pressable
               style={styles.suggest}
-              onPress={() => pick(item, 'from', setFromText, setFrom)}
+              onPress={() =>
+                choose(which, { name: item.name, lat: item.lat, lon: item.lon }, item.name)
+              }
             >
               <Text>{item.name}</Text>
             </Pressable>
@@ -141,42 +160,33 @@ export default function Home(): React.JSX.Element {
         />
       ) : null}
       <View style={styles.row}>
-        <Button title={t('useLocation')} onPress={() => void useLocation('from')} />
+        <Button title={t('useLocation')} onPress={() => void useLocation(which)} />
         <Button
-          title={t('swap')}
-          onPress={() => {
-            setFrom(to);
-            setTo(from);
-            setFromText(toText);
-            setToText(fromText);
-          }}
+          title={t('pinDrop')}
+          onPress={() => router.push({ pathname: '/pick', params: { target: which } })}
         />
       </View>
+    </View>
+  );
 
-      <TextInput
-        style={styles.input}
-        placeholder={t('toPlaceholder')}
-        value={toText}
-        onChangeText={(s) => {
-          setToText(s);
-          setTo(null);
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      <Stack.Screen options={{ title: t('appName') }} />
+      <Text style={styles.title}>{t('planTitle')}</Text>
+
+      {field('from', fromText, setFromText, fromResults)}
+      <Button
+        title={t('swap')}
+        onPress={() => {
+          swapEndpoints();
+          const ep = getEndpoints();
+          setFrom(ep.from);
+          setTo(ep.to);
+          setFromText(ep.from?.name ?? '');
+          setToText(ep.to?.name ?? '');
         }}
       />
-      {toResults.length > 0 ? (
-        <FlatList
-          data={toResults}
-          keyExtractor={(p) => p.stopId ?? p.name}
-          renderItem={({ item }) => (
-            <Pressable
-              style={styles.suggest}
-              onPress={() => pick(item, 'to', setToText, setTo)}
-            >
-              <Text>{item.name}</Text>
-            </Pressable>
-          )}
-        />
-      ) : null}
-      <Button title={t('useLocation')} onPress={() => void useLocation('to')} />
+      {field('to', toText, setToText, toResults)}
 
       {locating ? <ActivityIndicator /> : null}
       <Button
@@ -213,7 +223,7 @@ export default function Home(): React.JSX.Element {
       <Text style={styles.health}>
         API: {health} ({getBaseUrl()})
       </Text>
-    </View>
+    </ScrollView>
   );
 }
 

@@ -1,18 +1,20 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import type { Itinerary } from '@hyd/shared';
+import { getItinerary } from '../src/api/itinerary-store';
 import { MapView } from '../src/components/MapView';
 import '../src/i18n';
 
 export default function ItineraryDetail(): React.JSX.Element {
   const { t } = useTranslation();
-  const { data } = useLocalSearchParams<{ data?: string }>();
-  let it: Itinerary | null = null;
-  try {
-    it = data ? (JSON.parse(data) as Itinerary) : null;
-  } catch {
-    it = null;
+  const { id, data } = useLocalSearchParams<{ id?: string; data?: string }>();
+  let it = id ? getItinerary(id) : null;
+  if (!it && data) {
+    try {
+      it = JSON.parse(data) as import('@hyd/shared').Itinerary;
+    } catch {
+      it = null;
+    }
   }
   if (!it) {
     return (

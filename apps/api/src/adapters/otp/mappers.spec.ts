@@ -1,4 +1,5 @@
 import {
+  dedupePlaces,
   mapDepartures,
   mapItinerary,
   mapLeg,
@@ -132,5 +133,28 @@ describe('mappers', () => {
       '2026-10-05T04:30:00.000Z',
     );
     expect(toISO(1780636200000)).toBe(new Date(1780636200000).toISOString());
+  });
+
+  it('shows metro line names instead of codes', () => {
+    const leg = mapLeg({
+      ...BUS_LEG,
+      mode: 'SUBWAY',
+      route: {
+        gtfsId: 'hmrl:RED',
+        shortName: 'C1_RED',
+        longName: 'Miyapur - LB Nagar',
+        agency: { name: 'HMRL' },
+      },
+    });
+    expect(leg?.route?.shortName).toBe('Red Line');
+  });
+
+  it('dedupes same-name stops', () => {
+    const places = dedupePlaces([
+      { name: 'Koti', lat: 17.38, lon: 78.48, stopId: 'tgsrtc:A' },
+      { name: 'Koti', lat: 17.3801, lon: 78.4801, stopId: 'tgsrtc:B' },
+      { name: 'Koti Bank Street', lat: 17.39, lon: 78.49 },
+    ]);
+    expect(places.map((p) => p.name)).toEqual(['Koti', 'Koti Bank Street']);
   });
 });

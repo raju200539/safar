@@ -1,4 +1,4 @@
-import type { Itinerary, LatLon } from '@hyd/shared';
+import type { Itinerary, LatLon, Leg } from '@hyd/shared';
 import type { TripPlanner } from '../ports/trip-planner';
 
 export interface PlanQuery {
@@ -9,6 +9,13 @@ export interface PlanQuery {
 }
 
 export const MAX_ITINERARIES = 3;
+
+/** OTP is asked for more than we show so ranking has material to choose from. */
+export const PLANNER_REQUEST_COUNT = 6;
+
+/** Walk legs longer than this make an option a last resort. */
+const MAX_SINGLE_WALK_M = 2000;
+const MAX_TOTAL_WALK_M = 3000;
 
 /** Hyderabad service area (OSM extract bbox + margin). SPEC §2.7. */
 export const HYDERABAD_BBOX = {
@@ -37,7 +44,7 @@ export function assertInHyderabad(p: LatLon, label: string): void {
   }
 }
 
-/** M2: PlanTrip use case — validate, delegate to TripPlanner, cap at 3. */
+/** M2: PlanTrip use case — validate, rank, return up to 3 distinct options. */
 export class PlanTrip {
   constructor(private readonly planner: TripPlanner) {}
 
@@ -45,6 +52,51 @@ export class PlanTrip {
     assertInHyderabad(q.from, 'Origin');
     assertInHyderabad(q.to, 'Destination');
     const out = await this.planner.plan(q);
-    return out.slice(0, MAX_ITINERARIES);
+    return rankItineraries(out).slice(0, MAX_ITINERARIES);
   }
+}
+
+/** Signature of the transit part: same buses/trains, same stops = duplicate. */
+export function itinerarySignature(it: Itinerary): string {
+  return it.legs
+    .filter((l) => l.mode !== 'WALK')
+    .map(
+      (l) =>
+        `${l.mode}:${l.route?.id ?? '?'}@${l.from.stopId ?? l.from.name}>${l.to.stopId ?? l.to.name}`,
+    )
+    .join('|');
+}
+
+function walkOf(it: Itinerary): { total: number; maxLeg: number } {
+  const walks = it.legs
+    .filter((l: Leg) => l.mode === 'WALK')
+    .map((l: Leg) => l.distanceM ?? 0);
+  return {
+    total: walks.reduce((a, b) => a + b, 0),
+    maxLeg: walks.length > 0 ? Math.max(...walks) : 0,
+  };
+}
+
+function hasAbsurdWalk(it: Itinerary): boolean {
+  const w = walkOf(it);
+  return w.maxLeg > MAX_SINGLE_WALK_M || w.total > MAX_TOTAL_WALK_M;
+}
+
+/**
+ * OTP returns near-duplicates (same route, minutes apart). Keep the earliest
+ * of each distinct signature, drop absurd walks unless nothing else exists.
+ * Input is arrival-time ordered; order is preserved.
+ */
+export function rankItineraries(input: Itinerary[]): Itinerary[] {
+  const seen = new Set<string>();
+  const distinct: Itinerary[] = [];
+  for (const it of input) {
+    const sig = itinerarySignature(it) || `walk-${it.id}`;
+    if (seen.has(sig)) continue;
+    seen.add(sig);
+    distinct.push(it);
+  }
+  if (distinct.length === 0) return [];
+  const sane = distinct.filter((it) => !hasAbsurdWalk(it));
+  return sane.length > 0 ? sane : distinct.slice(0, 1);
 }
