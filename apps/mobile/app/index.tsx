@@ -295,7 +295,13 @@ export default function Home(): React.JSX.Element {
 
       {locating ? <ActivityIndicator color={theme.primary} /> : null}
       <UiButton
-        title={t('search')}
+        title={
+          canSearch && chosenWhen()
+            ? `${t('search')} · ${atLabel()}`
+            : canSearch
+              ? `${t('search')} · ${t('departNow')}`
+              : t('search')
+        }
         disabled={!canSearch}
         onPress={() => router.push({ pathname: '/results', params })}
         icon={<Ionicons name="search-outline" size={20} color="#fff" />}

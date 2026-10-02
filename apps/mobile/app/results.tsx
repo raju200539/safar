@@ -99,6 +99,14 @@ export default function Results(): React.JSX.Element {
           {p.fromName} → {p.toName}
         </Text>
       </View>
+      {p.when ? (
+        <View style={styles.routeRow}>
+          <Ionicons name="time-outline" size={18} color={theme.primary} />
+          <Text style={styles.meta}>
+            {t('departAt')}: {fmtTime(p.when)}
+          </Text>
+        </View>
+      ) : null}
       {state.kind === 'loading' ? (
         <ActivityIndicator size="large" color={theme.primary} />
       ) : null}
