@@ -13,6 +13,8 @@ export interface Place extends LatLon {
   stopId?: string;
   /** Straight-line distance from the query point, when known (nearby). */
   distanceM?: number;
+  /** 'stop' = transit stop, 'place' = landmark/address from geocoding. */
+  kind?: 'stop' | 'place';
 }
 
 export interface LegRoute {

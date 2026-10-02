@@ -39,10 +39,10 @@ check("health", s == 200 and health.get("api") == "ok", json.dumps(health))
 check("otp up", health.get("otp") == "ok", json.dumps(health))
 check("db up", health.get("db") == "ok", json.dumps(health))
 
-# M2: bus trip Koti -> Dilsukhnagar
+# M2: bus trip Koti -> Dilsukhnagar (daytime service)
 s, trips = call(
     "GET",
-    "/v1/plan?fromLat=17.385&fromLon=78.486&toLat=17.368&toLon=78.524",
+    "/v1/plan?fromLat=17.385&fromLon=78.486&toLat=17.368&toLon=78.524&when=2026-10-05T10:00:00%2B05:30",
 )
 check("plan status", s == 200, f"status={s}")
 check("plan options", isinstance(trips, list) and 1 <= len(trips) <= 3, f"n={len(trips) if isinstance(trips, list) else '?'}")

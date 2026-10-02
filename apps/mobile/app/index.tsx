@@ -31,7 +31,7 @@ import { cardBase, theme, type } from '../src/ui/theme';
 import type { HealthStatus, Place } from '@hyd/shared';
 import '../src/i18n';
 
-function useStopSearch(query: string): Place[] {
+function usePlaceSearch(query: string): Place[] {
   const [results, setResults] = useState<Place[]>([]);
   useEffect(() => {
     if (query.trim().length < 2) {
@@ -41,9 +41,9 @@ function useStopSearch(query: string): Place[] {
     let live = true;
     const t = setTimeout(() => {
       api
-        .searchStops(query.trim())
+        .searchPlaces(query.trim())
         .then((r) => {
-          if (live) setResults(r.slice(0, 6));
+          if (live) setResults(r.slice(0, 8));
         })
         .catch(() => {
           if (live) setResults([]);
@@ -70,8 +70,8 @@ export default function Home(): React.JSX.Element {
   const [departMode, setDepartMode] = useState<'now' | 'at'>('now');
   const [atTime, setAtTime] = useState<Date | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const fromResults = useStopSearch(from && fromText === from.name ? '' : fromText);
-  const toResults = useStopSearch(to && toText === to.name ? '' : toText);
+  const fromResults = usePlaceSearch(from && fromText === from.name ? '' : fromText);
+  const toResults = usePlaceSearch(to && toText === to.name ? '' : toText);
 
   // Re-read shared endpoints when returning from the pin-drop map.
   useFocusEffect(
@@ -197,7 +197,11 @@ export default function Home(): React.JSX.Element {
                 )
               }
             >
-              <Ionicons name="bus-outline" size={18} color={theme.primary} />
+              <Ionicons
+                name={item.kind === 'place' ? 'location-outline' : 'bus-outline'}
+                size={18}
+                color={theme.primary}
+              />
               <Text style={styles.suggestText}>{item.name}</Text>
             </Pressable>
           ))}
@@ -279,10 +283,11 @@ export default function Home(): React.JSX.Element {
               mode="time"
               is24Hour
               display="clock"
-              onChange={(_e: unknown, d?: Date) => {
+              onValueChange={(_e: unknown, d?: Date) => {
                 setPickerOpen(false);
                 if (d) setAtTime(d);
               }}
+              onDismiss={() => setPickerOpen(false)}
             />
           ) : null}
         </View>

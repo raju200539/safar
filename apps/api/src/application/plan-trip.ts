@@ -102,8 +102,15 @@ export function rankItineraries(input: Itinerary[]): Itinerary[] {
     distinct.push(it);
   }
   if (distinct.length === 0) return [];
-  const sane = distinct.filter((it) => !hasAbsurdWalk(it));
-  const pool = sane.length > 0 ? sane : distinct.slice(0, 1);
+  // A walk-only "transit option" is only useful for very short hops.
+  const withTransit = distinct.filter(
+    (it) =>
+      it.legs.some((l) => l.mode !== 'WALK') || (it.walkDistanceM ?? 0) <= 1000,
+  );
+  const pool0 = withTransit.length > 0 ? withTransit : [];
+  if (pool0.length === 0) return [];
+  const sane = pool0.filter((it) => !hasAbsurdWalk(it));
+  const pool = sane.length > 0 ? sane : pool0.slice(0, 1);
   return diversify(pool);
 }
 

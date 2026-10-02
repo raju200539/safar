@@ -22,13 +22,16 @@ function leg(
 }
 
 function itin(id: string, legs: import('@hyd/shared').Leg[]): Itinerary {
+  const walkDistanceM = legs
+    .filter((l) => l.mode === 'WALK')
+    .reduce((a, l) => a + (l.distanceM ?? 0), 0);
   return {
     id,
     startTime: '2026-10-05T10:00:00+05:30',
     endTime: '2026-10-05T10:30:00+05:30',
     durationSec: 1800,
     transfers: 0,
-    walkDistanceM: 500,
+    walkDistanceM,
     legs,
   };
 }
@@ -63,7 +66,14 @@ describe('rankItineraries', () => {
     expect(rankItineraries([bad, good]).map((i) => i.id)).toEqual(['good']);
   });
 
-  it('keeps the absurd walk when it is the only option', () => {
+  it('drops walk-only options unless the hop is short', () => {
+    const hike = itin('hike', [walk(5000)]);
+    expect(rankItineraries([hike])).toEqual([]);
+    const stroll = itin('stroll', [walk(800)]);
+    expect(rankItineraries([stroll]).map((i) => i.id)).toEqual(['stroll']);
+  });
+
+  it('keeps an absurd transit walk when it is the only option', () => {
     const bad = itin('bad', [walk(2500), bus('tgsrtc:218')]);
     expect(rankItineraries([bad]).map((i) => i.id)).toEqual(['bad']);
   });

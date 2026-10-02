@@ -65,6 +65,8 @@ export const api = {
     ),
   searchStops: (q: string) =>
     req<Place[]>(`/v1/stops/search?q=${encodeURIComponent(q)}`),
+  searchPlaces: (q: string) =>
+    req<Place[]>(`/v1/places/search?q=${encodeURIComponent(q)}`),
   nearby: (lat: number, lon: number, radius = 500) =>
     req<Place[]>(`/v1/stops/nearby?lat=${lat}&lon=${lon}&radius=${radius}`),
   arrivals: (id: string) =>
