@@ -59,10 +59,32 @@ describe('OtpPlanner fan-out', () => {
 
   it('runs a single search when a mode family is requested', async () => {
     const seen: unknown[] = [];
+    const metroNode = {
+      start: '2026-10-05T10:00:00+05:30',
+      end: '2026-10-05T11:00:00+05:30',
+      duration: 3600,
+      walkDistance: 500,
+      numberOfTransfers: 0,
+      legs: [
+        {
+          mode: 'SUBWAY',
+          start: { scheduledTime: '2026-10-05T10:00:00+05:30' },
+          end: { scheduledTime: '2026-10-05T11:00:00+05:30' },
+          duration: 3600,
+          distance: 5000,
+          from: { name: 'A', lat: 1, lon: 1, stop: { gtfsId: 'hmrl:A', name: 'A' } },
+          to: { name: 'B', lat: 2, lon: 2, stop: { gtfsId: 'hmrl:B', name: 'B' } },
+          route: { gtfsId: 'hmrl:RED', shortName: 'Red Line', agency: { name: 'H' } },
+          trip: { gtfsId: 't', tripHeadsign: 'X' },
+          stopCalls: [],
+          legGeometry: { points: '' },
+        },
+      ],
+    };
     const client = {
       query: async (_q: string, v: unknown): Promise<unknown> => {
         seen.push((v as { modes?: unknown }).modes);
-        return { planConnection: { edges: [] } };
+        return { planConnection: { edges: [{ node: metroNode }] } };
       },
     } as unknown as OtpClient;
     await new OtpPlanner(client).plan({

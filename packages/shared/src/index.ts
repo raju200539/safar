@@ -55,6 +55,8 @@ export interface Itinerary {
   legs: Leg[];
   /** Estimated CO₂ saved vs the same trip by private car. */
   co2SavedKg?: number;
+  /** Explains an approximation, e.g. endpoint nudged to reachable streets. */
+  note?: string;
 }
 
 export type ArrivalSource = 'live' | 'scheduled';

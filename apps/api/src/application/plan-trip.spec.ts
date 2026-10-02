@@ -91,4 +91,16 @@ describe('rankItineraries', () => {
     const d = itin('d', [bus('tgsrtc:218', 'P', 'Q')]);
     expect(rankItineraries([a, b, c, d]).map((i) => i.id)).toEqual(['a', 'c', 'b']);
   });
+
+  it('does not bury a metro trip under multi-bus chains', () => {
+    const m = itin('m', [
+      walk(500),
+      { ...bus('hmrl:RED'), mode: 'METRO' as const },
+      walk(500),
+    ]);
+    const b1 = itin('b1', [bus('tgsrtc:1'), bus('tgsrtc:2'), bus('tgsrtc:3')]);
+    const b2 = itin('b2', [bus('tgsrtc:4'), bus('tgsrtc:5')]);
+    const ids = rankItineraries([b1, b2, m]).map((i) => i.id);
+    expect(ids).toContain('m');
+  });
 });

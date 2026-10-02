@@ -123,29 +123,47 @@ function routeIdsOf(it: Itinerary): Set<string> {
   return s;
 }
 
-/** Greedily pick options that introduce unseen routes, then fill by time. */
+function modesOf(it: Itinerary): Set<string> {
+  const s = new Set<string>();
+  for (const l of it.legs) {
+    if (l.mode !== 'WALK') s.add(l.mode);
+  }
+  return s;
+}
+
+/**
+ * Greedily pick options that introduce unseen modes/routes, then fill by
+ * time. A new MODE (bus vs metro) outweighs extra routes so a metro trip
+ * isn't buried under multi-bus chains that merely list more route ids.
+ */
 function diversify(pool: Itinerary[]): Itinerary[] {
   const picked: Itinerary[] = [];
-  const covered = new Set<string>();
+  const coveredRoutes = new Set<string>();
+  const coveredModes = new Set<string>();
   const rest = [...pool];
+  const score = (it: Itinerary): number => {
+    let newModes = 0;
+    for (const m of modesOf(it)) if (!coveredModes.has(m)) newModes += 1;
+    let newRoutes = 0;
+    for (const r of routeIdsOf(it)) if (!coveredRoutes.has(r)) newRoutes += 1;
+    return 10 * newModes + newRoutes;
+  };
   while (picked.length < MAX_ITINERARIES && rest.length > 0) {
     let best = 0;
-    let bestNew = -1;
+    let bestScore = -1;
     for (let i = 0; i < rest.length; i++) {
-      let fresh = 0;
-      for (const r of routeIdsOf(rest[i] as Itinerary)) {
-        if (!covered.has(r)) fresh += 1;
-      }
-      if (fresh > bestNew) {
-        bestNew = fresh;
+      const s = score(rest[i] as Itinerary);
+      if (s > bestScore) {
+        bestScore = s;
         best = i;
       }
     }
     const [next] = rest.splice(best, 1);
     if (!next) break;
     picked.push(next);
-    for (const r of routeIdsOf(next)) covered.add(r);
-    if (bestNew === 0) {
+    for (const r of routeIdsOf(next)) coveredRoutes.add(r);
+    for (const m of modesOf(next)) coveredModes.add(m);
+    if (bestScore === 0) {
       // Nothing new left to cover: take the rest in time order.
       picked.push(...rest.slice(0, MAX_ITINERARIES - picked.length));
       break;

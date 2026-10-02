@@ -70,6 +70,11 @@ export default function ItineraryDetail(): React.JSX.Element {
         options={{ title: t('resultsTitle'), headerLeft: () => <ScreenBack /> }}
       />
       <MapView itinerary={trip} />
+      {trip.note ? (
+        <View style={[styles.co2box, styles.noteBox]}>
+          <Text style={styles.note}>{trip.note}</Text>
+        </View>
+      ) : null}
       {trip.co2SavedKg != null && trip.co2SavedKg > 0 ? (
         <View style={styles.co2box}>
           <Text style={styles.co2}>{t('co2Saved', { kg: trip.co2SavedKg.toFixed(2) })}</Text>
@@ -153,6 +158,8 @@ export default function ItineraryDetail(): React.JSX.Element {
 const styles = StyleSheet.create({
   container: { padding: 16, gap: 4, backgroundColor: theme.bg },
   co2box: { ...cardBase, padding: 12 },
+  noteBox: { backgroundColor: theme.warningBg },
+  note: { color: theme.warning, fontStyle: 'italic' },
   co2: { fontWeight: '700', color: theme.live },
   row: { flexDirection: 'row', gap: 10 },
   rail: { alignItems: 'center', width: 16, paddingTop: 18 },

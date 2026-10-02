@@ -190,6 +190,7 @@ export default function Results(): React.JSX.Element {
                       {longWalk ? ` · ${t('longWalk')}` : ''}
                     </Text>
                   </View>
+                  {it.note ? <Text style={styles.note}>{it.note}</Text> : null}
                 </Pressable>
               </Link>
             );
@@ -220,6 +221,7 @@ const styles = StyleSheet.create({
   co2: { fontSize: 13, fontWeight: '600', color: theme.live },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   meta: { fontSize: 13, color: theme.muted },
+  note: { fontSize: 13, color: theme.warning, fontStyle: 'italic' },
   chipRow: { flexDirection: 'row', gap: 8 },
   chipOff: {
     borderWidth: 1,

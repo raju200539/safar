@@ -85,6 +85,11 @@ export class OtpPlanner implements TripPlanner {
       const extra = await this.viaMetroHubs(base);
       merged = [...merged, ...extra];
     }
+    if (merged.length === 0) {
+      // Pinned points inside gated pockets often miss the walking graph.
+      // Retry from the nearest reachable points and say so honestly.
+      merged = await this.nudgedRetry(q, base);
+    }
     // No truncation here: PlanTrip dedupes, filters and diversifies
     // the full set down to MAX_ITINERARIES.
     return merged;
@@ -160,8 +165,44 @@ export class OtpPlanner implements TripPlanner {
     return results.flat().filter((it) => hasMetro(it));
   }
 
-  private async search(variables: unknown): Promise<Itinerary[]> {
-    let data: {
+  /**
+   * Pinned points inside gated pockets often miss the walking graph
+   * entirely (even walk-only routing fails). Retry with the point nudged
+   * ~160 m in each compass direction and label the approximation.
+   */
+  private async nudgedRetry(q: PlanQuery, base: BaseVars): Promise<Itinerary[]> {
+    const STEP = 0.00145;
+    const nudges: Array<{ origin?: LatLon; destination?: LatLon; label: string }> = [
+      { destination: { lat: q.to.lat, lon: q.to.lon + STEP / Math.cos((q.to.lat * Math.PI) / 180) }, label: 'destination' },
+      { destination: { lat: q.to.lat, lon: q.to.lon - STEP / Math.cos((q.to.lat * Math.PI) / 180) }, label: 'destination' },
+      { destination: { lat: q.to.lat + STEP, lon: q.to.lon }, label: 'destination' },
+      { destination: { lat: q.to.lat - STEP, lon: q.to.lon }, label: 'destination' },
+      { origin: { lat: q.from.lat, lon: q.from.lon + STEP / Math.cos((q.from.lat * Math.PI) / 180) }, label: 'origin' },
+      { origin: { lat: q.from.lat, lon: q.from.lon - STEP / Math.cos((q.from.lat * Math.PI) / 180) }, label: 'origin' },
+      { origin: { lat: q.from.lat + STEP, lon: q.from.lon }, label: 'origin' },
+      { origin: { lat: q.from.lat - STEP, lon: q.from.lon }, label: 'origin' },
+    ];
+    for (const nudge of nudges) {
+      const origin = nudge.origin ?? (base.origin as { location: { coordinate: LatLon } }).location.coordinate;
+      const destination =
+        nudge.destination ?? (base.destination as { location: { coordinate: LatLon } }).location.coordinate;
+      const found = await this.search({
+        ...base,
+        origin: { location: { coordinate: origin } },
+        destination: { location: { coordinate: destination } },
+        modes: { transit: { transit: ALL_MODES } },
+      });
+      if (found.length > 0) {
+        const note =
+          `Pinned ${nudge.label} isn't connected to walking streets, ` +
+          `so this trip starts/ends at the nearest reachable point.`;
+        return found.map((it) => ({ ...it, note }));
+      }
+    }
+    return [];
+  }
+
+  private async search(variables: unknown): Promise<Itinerary[]> {    let data: {
       planConnection?: {
         edges?: Array<{ node?: OtpItinerary | null } | null> | null;
       } | null;
