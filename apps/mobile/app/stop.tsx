@@ -17,6 +17,7 @@ import { openStopDirections } from '../src/api/navigate';
 import { UiButton } from '../src/ui/UiButton';
 import { EmptyState } from '../src/ui/EmptyState';
 import { cardBase, theme, type } from '../src/ui/theme';
+import { ScreenBack } from '../src/ui/ScreenBack';
 import type { Arrival, Report } from '@hyd/shared';
 import '../src/i18n';
 
@@ -73,7 +74,9 @@ export default function Stop(): React.JSX.Element {
 
   return (
     <ScrollView style={{ flex: 1, backgroundColor: theme.bg }}>
-      <Stack.Screen options={{ title: name ?? t('stopTitle') }} />
+      <Stack.Screen
+        options={{ title: name ?? t('stopTitle'), headerLeft: () => <ScreenBack /> }}
+      />
       <View style={styles.container}>
         <View style={styles.hero}>
           <Ionicons name="bus-outline" size={30} color={theme.primary} />

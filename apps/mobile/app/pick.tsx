@@ -8,6 +8,7 @@ import { api } from '../src/api/client';
 import { LeafletMap } from '../src/components/LeafletMap';
 import { UiButton } from '../src/ui/UiButton';
 import { theme, type } from '../src/ui/theme';
+import { ScreenBack } from '../src/ui/ScreenBack';
 import '../src/i18n';
 
 export default function Pick(): React.JSX.Element {
@@ -58,7 +59,12 @@ export default function Pick(): React.JSX.Element {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: t(which === 'to' ? 'toPlaceholder' : 'fromPlaceholder') }} />
+      <Stack.Screen
+        options={{
+          title: t(which === 'to' ? 'toPlaceholder' : 'fromPlaceholder'),
+          headerLeft: () => <ScreenBack />,
+        }}
+      />
       <Text style={type.body}>{t('pinHint')}</Text>
       <LeafletMap
         mode="pick"

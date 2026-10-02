@@ -1,4 +1,5 @@
-import { Pressable, StyleSheet, Text } from 'react-native';
+import { useRef } from 'react';
+import { Animated, Pressable, Text } from 'react-native';
 import { theme } from './theme';
 
 interface Props {
@@ -9,7 +10,7 @@ interface Props {
   icon?: React.ReactNode;
 }
 
-/** Big thumb-friendly button (min 48px), primary/secondary/ghost variants. */
+/** Physical button: springs to 0.96 on press-in, back on release. */
 export function UiButton({
   title,
   onPress,
@@ -17,6 +18,15 @@ export function UiButton({
   variant = 'primary',
   icon,
 }: Props): React.JSX.Element {
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const pressIn = (): void => {
+    Animated.spring(scale, { toValue: 0.96, useNativeDriver: true }).start();
+  };
+  const pressOut = (): void => {
+    Animated.spring(scale, { toValue: 1, friction: 5, useNativeDriver: true }).start();
+  };
+
   const base =
     variant === 'primary'
       ? styles.primary
@@ -26,38 +36,41 @@ export function UiButton({
   return (
     <Pressable
       onPress={onPress}
+      onPressIn={pressIn}
+      onPressOut={pressOut}
       disabled={disabled}
-      style={({ pressed }) => ({
-        ...styles.base,
-        ...base,
-        ...(pressed ? styles.pressed : {}),
-        ...(disabled ? styles.disabled : {}),
-      })}
     >
-      {icon}
-      <Text style={variant === 'primary' ? styles.labelPrimary : styles.labelDark}>
-        {title}
-      </Text>
+      <Animated.View
+        style={{
+          ...styles.base,
+          ...base,
+          transform: [{ scale }],
+          ...(disabled ? styles.disabled : {}),
+        }}
+      >
+        {icon}
+        <Text style={variant === 'primary' ? styles.labelPrimary : styles.labelDark}>
+          {title}
+        </Text>
+      </Animated.View>
     </Pressable>
   );
 }
 
-const styles = StyleSheet.create({
+const styles = {
   base: {
     minHeight: theme.tap,
     borderRadius: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
     gap: 8,
     paddingHorizontal: 16,
   },
   primary: { backgroundColor: theme.primary },
   secondary: { backgroundColor: '#E7F2ED' },
-  ghost: { backgroundColor: 'transparent' },
-  pressed: { opacity: 0.75 },
+  ghost: { backgroundColor: 'transparent' as const },
   disabled: { opacity: 0.45 },
-  label: { fontSize: 16, fontWeight: '700' },
-  labelPrimary: { color: '#fff' },
-  labelDark: { color: theme.primaryDark },
-});
+  labelPrimary: { fontSize: 16, fontWeight: '700' as const, color: '#fff' },
+  labelDark: { fontSize: 16, fontWeight: '700' as const, color: theme.primaryDark },
+};

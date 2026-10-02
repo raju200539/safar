@@ -1,4 +1,4 @@
-import { StyleSheet } from 'react-native';
+import { Platform, StyleSheet } from 'react-native';
 
 export const theme = {
   primary: '#0B6E4F',
@@ -38,14 +38,19 @@ export const shadows = StyleSheet.create({
  * (expo-router Slot rejects array styles on route roots). */
 export const cardBase = {
   backgroundColor: theme.card,
-  borderRadius: theme.radius,
-  borderWidth: 1,
-  borderColor: theme.border,
-  shadowColor: '#000',
-  shadowOpacity: 0.07,
-  shadowRadius: 10,
-  shadowOffset: { width: 0, height: 3 },
-  elevation: 3,
+  borderRadius: 16,
+  padding: 0,
+  ...Platform.select({
+    ios: {
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+    },
+    android: {
+      elevation: 4,
+    },
+  }),
 };
 
 export const type = StyleSheet.create({

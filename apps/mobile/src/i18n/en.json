@@ -44,6 +44,8 @@
   "reportSubmit": "Submit report",
   "navigate": "Navigate",
   "navigateWalk": "Navigate this walk",
+  "platform": "Platform {{n}}",
+  "fare": "₹{{inr}}",
   "directionsToStop": "Directions to this stop",
   "reportDone": "Thanks — your report is visible to other riders.",
   "co2Saved": "🌱 Saves ~{{kg}} kg CO₂ vs car (estimate)",

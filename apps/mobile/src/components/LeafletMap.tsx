@@ -17,12 +17,18 @@ export interface MapPoint {
   longitude: number;
 }
 
+export interface Checkpoint extends MapPoint {
+  name?: string;
+}
+
 interface Props {
   mode: 'route' | 'pick';
   /** Route line + bounds for 'route'. */
   points?: MapPoint[];
   /** Start/destination pins for 'route'. */
   pins?: { start?: MapPoint; end?: MapPoint };
+  /** Intermediate stops drawn as dots for 'route'. */
+  checkpoints?: Checkpoint[];
   /** Initial center for 'pick'. */
   center?: MapPoint;
   onPick?: (p: MapPoint) => void;
@@ -32,7 +38,21 @@ interface Props {
 const LEAFLET_CSS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
 const LEAFLET_JS = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
 
-function html(mode: 'route' | 'pick', points: MapPoint[], pins: Props['pins'], center: MapPoint): string {
+function html(
+  mode: 'route' | 'pick',
+  points: MapPoint[],
+  pins: Props['pins'],
+  checkpoints: Checkpoint[],
+  center: MapPoint,
+): string {
+  const pts = JSON.stringify(points.map((p) => [p.latitude, p.longitude]));
+  const pinJson = JSON.stringify({
+    start: pins?.start ? [pins.start.latitude, pins.start.longitude] : null,
+    end: pins?.end ? [pins.end.latitude, pins.end.longitude] : null,
+  });
+  const cpJson = JSON.stringify(
+    checkpoints.map((c) => [c.latitude, c.longitude, c.name ?? '']),
+  );
   return `<!DOCTYPE html><html><head><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
 <link rel="stylesheet" href="${LEAFLET_CSS}" />
 <style>html,body,#m{height:100%;margin:0;padding:0}.leaflet-container{font:inherit}</style></head>
@@ -43,18 +63,19 @@ function html(mode: 'route' | 'pick', points: MapPoint[], pins: Props['pins'], c
   var map = L.map('m', { zoomControl: false }).setView([${center.latitude}, ${center.longitude}], 13);
   L.control.zoom({ position: 'bottomright' }).addTo(map);
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }).addTo(map);
-  var pts = ${JSON.stringify(points.map((p) => [p.latitude, p.longitude]))};
+  var pts = ${pts};
   if ('${mode}' === 'route') {
     if (pts.length > 0) {
       L.polyline(pts, { color: '#0B6E4F', weight: 5 }).addTo(map);
       map.fitBounds(L.latLngBounds(pts).pad(0.25));
     }
-    var pins = ${JSON.stringify({
-      start: pins?.start ? [pins.start.latitude, pins.start.longitude] : null,
-      end: pins?.end ? [pins.end.latitude, pins.end.longitude] : null,
-    })};
+    var pins = ${pinJson};
     if (pins.start) L.marker(pins.start).addTo(map).bindPopup('Start');
     if (pins.end) L.marker(pins.end).addTo(map).bindPopup('Destination');
+    var cps = ${cpJson};
+    cps.forEach(function(c) {
+      L.circleMarker([c[0], c[1]], { radius: 6, color: '#ffffff', weight: 2, fillColor: '#E63946', fillOpacity: 1 }).addTo(map).bindPopup(c[2] || '');
+    });
   } else {
     var marker = null;
     map.on('click', function(e) {
@@ -77,6 +98,9 @@ export function LeafletMap(props: Props): React.JSX.Element {
     const pts = (props.points ?? []).filter(
       (p) => Number.isFinite(p.latitude) && Number.isFinite(p.longitude),
     );
+    const cps = (props.checkpoints ?? []).filter(
+      (p) => Number.isFinite(p.latitude) && Number.isFinite(p.longitude),
+    );
     const center =
       props.center ??
       (pts.length > 0
@@ -85,8 +109,9 @@ export function LeafletMap(props: Props): React.JSX.Element {
             longitude: pts.reduce((a, p) => a + p.longitude, 0) / pts.length,
           }
         : { latitude: 17.385, longitude: 78.486 });
-    return { html: html(props.mode, pts, props.pins, center) };
-  }, [props]);
+    return { html: html(props.mode, pts, props.pins, cps, center) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.mode, props.points, props.pins, props.checkpoints, props.center]);
 
   return (
     <View style={{ ...styles.box, height: props.height ?? styles.box.height }}>

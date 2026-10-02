@@ -15,6 +15,7 @@ import { api } from '../src/api/client';
 import { openStopDirections } from '../src/api/navigate';
 import { EmptyState } from '../src/ui/EmptyState';
 import { UiButton } from '../src/ui/UiButton';
+import { animateLayout } from '../src/ui/anim';
 import { cardBase, theme, type } from '../src/ui/theme';
 import type { Place } from '@hyd/shared';
 import '../src/i18n';
@@ -40,7 +41,10 @@ export default function Stops(): React.JSX.Element {
         }
         const pos = await Location.getCurrentPositionAsync({});
         const r = await api.nearby(pos.coords.latitude, pos.coords.longitude, 1000);
-        if (live) setNearby(r);
+        if (live) {
+          animateLayout();
+          setNearby(r);
+        }
       } catch {
         if (live) setLocError(true);
       } finally {

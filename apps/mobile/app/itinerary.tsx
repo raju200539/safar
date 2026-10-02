@@ -7,6 +7,7 @@ import { fmtTime } from '../src/api/format';
 import { openWalkDirections } from '../src/api/navigate';
 import { MapView } from '../src/components/MapView';
 import { cardBase, theme } from '../src/ui/theme';
+import { ScreenBack } from '../src/ui/ScreenBack';
 import '../src/i18n';
 
 function modeColor(mode: Leg['mode']): string {
@@ -42,7 +43,9 @@ export default function ItineraryDetail(): React.JSX.Element {
   const trip: Itinerary = it;
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Stack.Screen options={{ title: t('resultsTitle') }} />
+      <Stack.Screen
+        options={{ title: t('resultsTitle'), headerLeft: () => <ScreenBack /> }}
+      />
       <MapView itinerary={trip} />
       {trip.co2SavedKg != null && trip.co2SavedKg > 0 ? (
         <View style={styles.co2box}>
@@ -80,6 +83,18 @@ export default function ItineraryDetail(): React.JSX.Element {
                 <Text style={styles.times}>
                   {fmtTime(leg.startTime)} → {fmtTime(leg.endTime)}
                 </Text>
+              ) : null}
+              {leg.mode !== 'WALK' && (leg.fareInr != null || leg.from.platformCode) ? (
+                <View style={styles.tagRow}>
+                  {leg.fareInr != null ? (
+                    <Text style={styles.fare}>{t('fare', { inr: leg.fareInr })}</Text>
+                  ) : null}
+                  {leg.from.platformCode ? (
+                    <Text style={styles.platform}>
+                      {t('platform', { n: leg.from.platformCode })}
+                    </Text>
+                  ) : null}
+                </View>
               ) : null}
               {leg.intermediateStops && leg.intermediateStops.length > 0 ? (
                 <Text style={styles.stops}>
@@ -129,5 +144,24 @@ const styles = StyleSheet.create({
   instruction: { fontSize: 15, color: theme.text },
   meta: { color: theme.muted },
   times: { fontSize: 16, fontWeight: '700', color: theme.primaryDark },
+  tagRow: { flexDirection: 'row', gap: 8 },
+  fare: {
+    fontWeight: '700',
+    color: theme.primaryDark,
+    backgroundColor: '#E7F2ED',
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+  platform: {
+    fontWeight: '700',
+    color: '#fff',
+    backgroundColor: theme.metro,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
   stops: { color: theme.muted },
 });

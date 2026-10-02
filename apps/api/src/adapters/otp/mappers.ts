@@ -6,6 +6,7 @@ import type {
   Place,
 } from '@hyd/shared';
 import { buildInstruction } from '../../application/instructions';
+import { metroFareInr } from './fare-table';
 
 // Raw OTP GTFS-GraphQL shapes (subset we query). Kept loose on purpose:
 // OTP versions drift; mappers validate at runtime and skip what they
@@ -17,6 +18,7 @@ export interface OtpStopRef {
   name?: string | null;
   lat?: number | null;
   lon?: number | null;
+  platformCode?: string | null;
 }
 
 export interface OtpPlace {
@@ -110,21 +112,25 @@ export function toISO(
 
 function toPlace(p: OtpPlace | null | undefined, fallback: string): Place {
   const stop = p?.stop;
-  return {
+  const place: Place = {
     name: stop?.name ?? p?.name ?? fallback,
     lat: Number(stop?.lat ?? p?.lat ?? 0),
     lon: Number(stop?.lon ?? p?.lon ?? 0),
     stopId: stop?.gtfsId ?? undefined,
   };
+  if (stop?.platformCode) place.platformCode = stop.platformCode;
+  return place;
 }
 
 function toIntermediate(stop: OtpStopRef): Place {
-  return {
+  const place: Place = {
     name: stop.name ?? stop.code ?? 'Stop',
     lat: Number(stop.lat ?? 0),
     lon: Number(stop.lon ?? 0),
     stopId: stop.gtfsId ?? undefined,
   };
+  if (stop.platformCode) place.platformCode = stop.platformCode;
+  return place;
 }
 
 const METRO_LINES: Record<string, string> = {
@@ -221,8 +227,36 @@ export function mapLeg(leg: OtpLeg): Leg | null {
       mapped.intermediateStops = intermediateStops;
     }
   }
+  if (mode === 'METRO') {
+    const fare = metroFareInr(mapped.from.stopId, mapped.to.stopId);
+    if (fare != null) mapped.fareInr = fare;
+  }
   mapped.instruction = buildInstruction(mapped);
   return mapped;
+}
+
+/**
+ * Same-station transfers (e.g. Blue→Red at Ameerpet) arrive as short WALK
+ * legs. Rewrite them as interchange instructions naming the next line and
+ * platform instead of "walk N m".
+ */
+export function applyInterchangeHints(legs: Leg[]): void {
+  for (let i = 0; i < legs.length; i++) {
+    const leg = legs[i] as Leg;
+    const next = legs[i + 1] as Leg | undefined;
+    if (!leg || leg.mode !== 'WALK' || !next || next.mode === 'WALK') continue;
+    const a = leg.from.name.trim().toLowerCase();
+    const b = leg.to.name.trim().toLowerCase();
+    if (!a || a !== b) continue;
+    const line = next.route?.shortName ?? (next.mode === 'METRO' ? 'metro' : 'bus');
+    const platform = next.from.platformCode
+      ? ` from Platform ${next.from.platformCode}`
+      : '';
+    const head = next.headsign ? ` towards ${next.headsign}` : '';
+    leg.instruction =
+      `Change here at ${leg.from.name} — no need to exit. ` +
+      `Take ${line}${head}${platform}.`;
+  }
 }
 
 export function mapItinerary(it: OtpItinerary, index: number): Itinerary | null {
@@ -233,6 +267,7 @@ export function mapItinerary(it: OtpItinerary, index: number): Itinerary | null 
     legs.push(leg);
   }
   if (legs.length === 0) return null;
+  applyInterchangeHints(legs);
   const transitLegs = legs.filter((l) => l.mode !== 'WALK').length;
   return {
     id: `it-${String(it.start ?? index)}-${index}`,

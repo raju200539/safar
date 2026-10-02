@@ -15,6 +15,8 @@ export interface Place extends LatLon {
   distanceM?: number;
   /** 'stop' = transit stop, 'place' = landmark/address from geocoding. */
   kind?: 'stop' | 'place';
+  /** Platform code when the stop is a metro platform (e.g. "1"). */
+  platformCode?: string;
 }
 
 export interface LegRoute {
@@ -39,6 +41,8 @@ export interface Leg {
   geometry: string; // encoded polyline
   instruction: string; // generated server-side, plain language
   live?: { etaSec: number; source: 'live' }; // absent => scheduled
+  /** Exact fare in INR when the feed publishes fare tables (metro only). */
+  fareInr?: number;
 }
 
 export interface Itinerary {

@@ -2,11 +2,11 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import polyline from '@mapbox/polyline';
 import type { Itinerary } from '@hyd/shared';
-import { LeafletMap, type MapPoint } from './LeafletMap';
+import { LeafletMap, type Checkpoint, type MapPoint } from './LeafletMap';
 
 // Trip route map (web-based Leaflet, OSM tiles — no keys, no native SDK).
 export function MapView({ itinerary }: { itinerary: Itinerary }): React.JSX.Element {
-  const { coords, start, end, valid } = useMemo(() => {
+  const { coords, start, end, valid, checkpoints } = useMemo(() => {
     const pts: MapPoint[] = [];
     for (const leg of itinerary.legs) {
       const ends = [
@@ -36,8 +36,35 @@ export function MapView({ itinerary }: { itinerary: Itinerary }): React.JSX.Elem
       (p) => Number.isFinite(p.latitude) && Number.isFinite(p.longitude),
     );
     if (finite.length === 0 || itinerary.legs.length === 0) {
-      return { coords: [], start: undefined, end: undefined, valid: false };
+      return {
+        coords: [] as MapPoint[],
+        start: undefined,
+        end: undefined,
+        valid: false,
+        checkpoints: [] as Checkpoint[],
+      };
     }
+    // Checkpoints: every board/alight + intermediate stop of transit legs,
+    // with consecutive duplicates removed.
+    const raw: Checkpoint[] = [];
+    for (const leg of itinerary.legs) {
+      if (leg.mode === 'WALK') continue;
+      raw.push(
+        { latitude: leg.from.lat, longitude: leg.from.lon, name: leg.from.name },
+        ...(leg.intermediateStops ?? []).map((s) => ({
+          latitude: s.lat,
+          longitude: s.lon,
+          name: s.name,
+        })),
+        { latitude: leg.to.lat, longitude: leg.to.lon, name: leg.to.name },
+      );
+    }
+    const checkpoints = raw.filter(
+      (c, i) =>
+        i === 0 ||
+        c.latitude !== raw[i - 1]?.latitude ||
+        c.longitude !== raw[i - 1]?.longitude,
+    );
     const first = itinerary.legs[0];
     const last = itinerary.legs[itinerary.legs.length - 1];
     return {
@@ -45,6 +72,7 @@ export function MapView({ itinerary }: { itinerary: Itinerary }): React.JSX.Elem
       start: { latitude: first.from.lat, longitude: first.from.lon },
       end: { latitude: last.to.lat, longitude: last.to.lon },
       valid: true,
+      checkpoints,
     };
   }, [itinerary]);
 
@@ -55,7 +83,9 @@ export function MapView({ itinerary }: { itinerary: Itinerary }): React.JSX.Elem
       </View>
     );
   }
-  return <LeafletMap mode="route" points={coords} pins={{ start, end }} />;
+  return (
+    <LeafletMap mode="route" points={coords} pins={{ start, end }} checkpoints={checkpoints} />
+  );
 }
 
 const styles = StyleSheet.create({

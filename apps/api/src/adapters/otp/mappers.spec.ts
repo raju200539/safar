@@ -1,4 +1,5 @@
 import {
+  applyInterchangeHints,
   cleanHeadsign,
   dedupePlaces,
   estimateCo2SavedKg,
@@ -158,6 +159,34 @@ describe('mappers', () => {
       { name: 'Koti Bank Street', lat: 17.39, lon: 78.49 },
     ]);
     expect(places.map((p) => p.name)).toEqual(['Koti', 'Koti Bank Street']);
+  });
+
+  it('rewrites same-station walks as interchange instructions', () => {
+    const blue = mapLeg(BUS_LEG);
+    if (!blue) throw new Error('fixture failed');
+    blue.mode = 'METRO';
+    blue.from = { name: 'Ameerpet', lat: 1, lon: 1, stopId: 'hmrl:AMP' };
+    blue.to = { name: 'MGBS', lat: 2, lon: 2, stopId: 'hmrl:MGB' };
+    const walk: import('@hyd/shared').Leg = {
+      mode: 'WALK',
+      from: { name: 'Ameerpet', lat: 1, lon: 1, stopId: 'hmrl:AMP' },
+      to: { name: 'Ameerpet', lat: 1, lon: 1, stopId: 'hmrl:AMP' },
+      startTime: '2026-10-05T10:00:00+05:30',
+      endTime: '2026-10-05T10:05:00+05:30',
+      durationSec: 300,
+      distanceM: 150,
+      geometry: '',
+      instruction: 'Walk 150 m to Ameerpet.',
+    };
+    const red = mapLeg(BUS_LEG);
+    if (!red) throw new Error('fixture failed');
+    red.mode = 'METRO';
+    red.from = { name: 'Ameerpet', lat: 1, lon: 1, stopId: 'hmrl:AMP', platformCode: '2' };
+    red.route = { id: 'hmrl:RED', shortName: 'Red Line', agency: 'HMRL' };
+    red.headsign = 'LB Nagar';
+    applyInterchangeHints([blue, walk, red]);
+    expect(walk.instruction).toContain('Change here at Ameerpet');
+    expect(walk.instruction).toContain('Platform 2');
   });
 
   it('cleans echoed route prefixes from headsigns', () => {

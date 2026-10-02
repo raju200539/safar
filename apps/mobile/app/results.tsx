@@ -7,7 +7,10 @@ import { ApiError, api, addRecentSearch } from '../src/api/client';
 import { putItinerary } from '../src/api/itinerary-store';
 import { fmtTime } from '../src/api/format';
 import { EmptyState } from '../src/ui/EmptyState';
-import { cardBase, theme } from '../src/ui/theme';import type { Itinerary } from '@hyd/shared';
+import { animateLayout } from '../src/ui/anim';
+import { cardBase, theme } from '../src/ui/theme';
+import { ScreenBack } from '../src/ui/ScreenBack';
+import type { Itinerary } from '@hyd/shared';
 import '../src/i18n';
 
 function fmtDur(sec: number): string {
@@ -65,6 +68,7 @@ export default function Results(): React.JSX.Element {
       .plan({ fromLat, fromLon, toLat, toLon, when: p.when, modes: modeFilter })
       .then((items) => {
         if (!live) return;
+        animateLayout();
         setState({ kind: 'done', items });
         void addRecentSearch({
           fromName: p.fromName ?? '',
@@ -93,7 +97,9 @@ export default function Results(): React.JSX.Element {
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: t('resultsTitle') }} />
+      <Stack.Screen
+        options={{ title: t('resultsTitle'), headerLeft: () => <ScreenBack /> }}
+      />
       <View style={styles.routeRow}>
         <Ionicons name="locate-outline" size={18} color={theme.primary} />
         <Text style={styles.route} numberOfLines={1}>

@@ -43,6 +43,7 @@ export const PLAN_QUERY = /* GraphQL */ `
                 gtfsId
                 code
                 name
+                platformCode
               }
             }
             to {
@@ -53,6 +54,7 @@ export const PLAN_QUERY = /* GraphQL */ `
                 gtfsId
                 code
                 name
+                platformCode
               }
             }
             route {
@@ -76,6 +78,7 @@ export const PLAN_QUERY = /* GraphQL */ `
                   name
                   lat
                   lon
+                  platformCode
                 }
               }
             }
