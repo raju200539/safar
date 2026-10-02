@@ -9,9 +9,13 @@ import { PLAN_QUERY } from './gtfs-queries';
 import { mapItinerary, type OtpItinerary } from './mappers';
 import type { Itinerary } from '@hyd/shared';
 
-const TRANSIT_MODES = ['BUS', 'COACH', 'SUBWAY', 'RAIL', 'TRAM'].map(
-  (mode) => ({ mode }),
-);
+const BUS_MODES = [{ mode: 'BUS' }, { mode: 'COACH' }];
+const METRO_MODES = [
+  { mode: 'SUBWAY' },
+  { mode: 'RAIL' },
+  { mode: 'TRAM' },
+];
+const ALL_MODES = [...BUS_MODES, ...METRO_MODES];
 
 function toOtpDateTime(when: Date, arriveBy: boolean): Record<string, string> {
   // OffsetDateTime with the Hyderabad offset so OTP picks the right day.
@@ -23,14 +27,15 @@ function toOtpDateTime(when: Date, arriveBy: boolean): Record<string, string> {
 export class OtpPlanner implements TripPlanner {
   constructor(private readonly client: OtpClient = new OtpClient()) {}
 
+  /**
+   * Fans out to three searches (all transit, bus-only, metro-only) so the
+   * rider gets genuinely different ways to go, not the same trip thrice.
+   * PlanTrip dedupes + ranks the merged list.
+   */
   async plan(q: PlanQuery): Promise<Itinerary[]> {
     const when = q.when ?? new Date();
     const arriveBy = q.arriveBy ?? false;
-    const data = await this.client.query<{
-      planConnection?: {
-        edges?: Array<{ node?: OtpItinerary | null } | null> | null;
-      } | null;
-    }>(PLAN_QUERY, {
+    const base = {
       origin: {
         location: {
           coordinate: { latitude: q.from.lat, longitude: q.from.lon },
@@ -42,9 +47,32 @@ export class OtpPlanner implements TripPlanner {
         },
       },
       dateTime: toOtpDateTime(when, arriveBy),
-      modes: { transit: { transit: TRANSIT_MODES } },
       first: PLANNER_REQUEST_COUNT,
-    });
+    };
+    const results = await Promise.all([
+      this.search({ ...base, modes: { transit: { transit: ALL_MODES } } }),
+      this.search({ ...base, modes: { transit: { transit: BUS_MODES } } }),
+      this.search({ ...base, modes: { transit: { transit: METRO_MODES } } }),
+    ]);
+    const merged = results.flat();
+    return merged.slice(0, MAX_ITINERARIES * 2);
+  }
+
+  private async search(variables: unknown): Promise<Itinerary[]> {
+    let data: {
+      planConnection?: {
+        edges?: Array<{ node?: OtpItinerary | null } | null> | null;
+      } | null;
+    };
+    try {
+      data = await this.client.query<{
+        planConnection?: {
+          edges?: Array<{ node?: OtpItinerary | null } | null> | null;
+        } | null;
+      }>(PLAN_QUERY, variables);
+    } catch {
+      return [];
+    }
     const edges = data.planConnection?.edges ?? [];
     const mapped: Itinerary[] = [];
     edges.forEach((e, i) => {
@@ -52,6 +80,6 @@ export class OtpPlanner implements TripPlanner {
       const m = mapItinerary(e.node, i);
       if (m) mapped.push(m);
     });
-    return mapped.slice(0, MAX_ITINERARIES);
+    return mapped;
   }
 }

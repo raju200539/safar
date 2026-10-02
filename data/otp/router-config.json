@@ -3,6 +3,9 @@
     "walk": {
       "speed": 1.2
     },
-    "transferSlack": "PT2M"
+    "transferSlack": "PT2M",
+    "accessEgress": {
+      "maxDuration": "PT15M"
+    }
   }
 }

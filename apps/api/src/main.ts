@@ -6,6 +6,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './http/all-exceptions.filter';
 import { ApiException } from './http/api-exception';
+import { LoggingInterceptor } from './http/logging.interceptor';
 
 async function bootstrap(): Promise<void> {
   config(); // CWD (docker / explicit env)
@@ -28,6 +29,7 @@ async function bootstrap(): Promise<void> {
     }),
   );
   app.useGlobalFilters(new AllExceptionsFilter());
+  app.useGlobalInterceptors(new LoggingInterceptor());
   const port = Number(process.env.PORT ?? 3000);
   await app.listen(port);
 }

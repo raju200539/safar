@@ -85,12 +85,15 @@ function hasAbsurdWalk(it: Itinerary): boolean {
 /**
  * OTP returns near-duplicates (same route, minutes apart). Keep the earliest
  * of each distinct signature, drop absurd walks unless nothing else exists.
- * Input is arrival-time ordered; order is preserved.
+ * Output is sorted by departure (arrival-time order).
  */
 export function rankItineraries(input: Itinerary[]): Itinerary[] {
+  const sorted = [...input].sort((a, b) =>
+    a.startTime < b.startTime ? -1 : a.startTime > b.startTime ? 1 : 0,
+  );
   const seen = new Set<string>();
   const distinct: Itinerary[] = [];
-  for (const it of input) {
+  for (const it of sorted) {
     const sig = itinerarySignature(it) || `walk-${it.id}`;
     if (seen.has(sig)) continue;
     seen.add(sig);
