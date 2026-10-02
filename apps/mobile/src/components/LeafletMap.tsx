@@ -89,7 +89,7 @@ export function LeafletMap(props: Props): React.JSX.Element {
   }, [props]);
 
   return (
-    <View style={[styles.box, props.height != null && { height: props.height }]}>
+    <View style={{ ...styles.box, height: props.height ?? styles.box.height }}>
       <WebView
         source={source}
         style={styles.web}

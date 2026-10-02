@@ -31,11 +31,11 @@ function BootOverlay({ done }: { done: () => void }): React.JSX.Element {
   const dotX = dot.interpolate({ inputRange: [0, 1], outputRange: [-72, 72] });
 
   return (
-    <Animated.View style={[styles.boot, { opacity: fade }]}>
+    <Animated.View style={{ ...styles.boot, opacity: fade }}>
       <Animated.View style={{ transform: [{ scale }] }}>
         <BrandMark size={168} />
       </Animated.View>
-      <Animated.View style={[styles.dot, { transform: [{ translateX: dotX }] }]} />
+      <Animated.View style={{ ...styles.dot, transform: [{ translateX: dotX }] }} />
       <Text style={styles.word}>Safar</Text>
       <Text style={styles.sub}>Bus & Metro, simplified</Text>
     </Animated.View>

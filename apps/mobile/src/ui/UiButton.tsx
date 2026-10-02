@@ -17,26 +17,25 @@ export function UiButton({
   variant = 'primary',
   icon,
 }: Props): React.JSX.Element {
+  const base =
+    variant === 'primary'
+      ? styles.primary
+      : variant === 'secondary'
+        ? styles.secondary
+        : styles.ghost;
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled}
-      style={({ pressed }) => [
-        styles.base,
-        variant === 'primary' && styles.primary,
-        variant === 'secondary' && styles.secondary,
-        variant === 'ghost' && styles.ghost,
-        pressed && styles.pressed,
-        disabled && styles.disabled,
-      ]}
+      style={({ pressed }) => ({
+        ...styles.base,
+        ...base,
+        ...(pressed ? styles.pressed : {}),
+        ...(disabled ? styles.disabled : {}),
+      })}
     >
       {icon}
-      <Text
-        style={[
-          styles.label,
-          variant === 'primary' ? styles.labelPrimary : styles.labelDark,
-        ]}
-      >
+      <Text style={variant === 'primary' ? styles.labelPrimary : styles.labelDark}>
         {title}
       </Text>
     </Pressable>

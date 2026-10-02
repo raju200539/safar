@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { BrandMark } from './BrandMark';
 import { CITIES, getCity, setCity, subscribeCity } from '../api/city';
-import { shadows } from '../ui/theme';
+import { cardBase } from '../ui/theme';
 import '../i18n';
 
 /** Top bar: logo + Safar + city pill. Used on the tab screens. */
@@ -26,7 +26,7 @@ export function AppHeader(): React.JSX.Element {
       </Pressable>
       <Modal visible={open} transparent animationType="fade">
         <Pressable style={styles.sheet} onPress={() => setOpen(false)}>
-          <View style={[shadows.card, styles.sheetBox]}>
+          <View style={styles.sheetBox}>
             <Text style={styles.sheetTitle}>{t('changeCity')}</Text>
             {CITIES.map((c) => (
               <Pressable
@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
   },
   pillText: { color: '#fff', fontWeight: '700', fontSize: 13 },
   sheet: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
-  sheetBox: { padding: 20, gap: 6, borderRadius: 20, margin: 12 },
+  sheetBox: { ...cardBase, padding: 20, gap: 6, borderRadius: 20, margin: 12 },
   sheetTitle: { fontSize: 18, fontWeight: '700' },
   cityRow: {
     flexDirection: 'row',

@@ -34,6 +34,20 @@ export const shadows = StyleSheet.create({
   },
 });
 
+/** Plain-object twin of shadows.card for merging WITHOUT style arrays
+ * (expo-router Slot rejects array styles on route roots). */
+export const cardBase = {
+  backgroundColor: theme.card,
+  borderRadius: theme.radius,
+  borderWidth: 1,
+  borderColor: theme.border,
+  shadowColor: '#000',
+  shadowOpacity: 0.07,
+  shadowRadius: 10,
+  shadowOffset: { width: 0, height: 3 },
+  elevation: 3,
+};
+
 export const type = StyleSheet.create({
   h1: { fontSize: 26, fontWeight: '800', color: theme.text },
   h2: { fontSize: 18, fontWeight: '700', color: theme.text },

@@ -27,7 +27,7 @@ import {
   type Endpoint,
 } from '../src/api/endpoints';
 import { UiButton } from '../src/ui/UiButton';
-import { shadows, theme, type } from '../src/ui/theme';
+import { cardBase, theme, type } from '../src/ui/theme';
 import type { HealthStatus, Place } from '@hyd/shared';
 import '../src/i18n';
 
@@ -225,7 +225,7 @@ export default function Home(): React.JSX.Element {
       <Stack.Screen options={{ title: t('appName') }} />
       <Text style={type.h1}>{t('planTitle')}</Text>
 
-      <View style={[shadows.card, styles.block]}>
+      <View style={styles.block}>
         {field('from', fromText, setFromText, fromResults)}
       </View>
       <View style={styles.swapRow}>
@@ -243,25 +243,25 @@ export default function Home(): React.JSX.Element {
           <Ionicons name="swap-vertical" size={22} color="#fff" />
         </Pressable>
       </View>
-      <View style={[shadows.card, styles.block]}>
+      <View style={styles.block}>
         {field('to', toText, setToText, toResults)}
       </View>
 
-      <View style={[shadows.card, styles.block]}>
+      <View style={styles.block}>
         <View style={styles.segRow}>
           <Pressable
-            style={[styles.seg, departMode === 'now' && styles.segOn]}
+            style={departMode === 'now' ? styles.segOn : styles.segOff}
             onPress={() => setDepartMode('now')}
           >
-            <Text style={[styles.segText, departMode === 'now' && styles.segTextOn]}>
+            <Text style={departMode === 'now' ? styles.segTextOn : styles.segTextOff}>
               {t('departNow')}
             </Text>
           </Pressable>
           <Pressable
-            style={[styles.seg, departMode === 'at' && styles.segOn]}
+            style={departMode === 'at' ? styles.segOn : styles.segOff}
             onPress={() => setDepartMode('at')}
           >
-            <Text style={[styles.segText, departMode === 'at' && styles.segTextOn]}>
+            <Text style={departMode === 'at' ? styles.segTextOn : styles.segTextOff}>
               {t('departAt')}
             </Text>
           </Pressable>
@@ -315,7 +315,7 @@ export default function Home(): React.JSX.Element {
               }}
               asChild
             >
-              <Pressable style={[shadows.card, styles.recentCard]}>
+              <Pressable style={styles.recentCard}>
                 <Ionicons name="time-outline" size={20} color={theme.primary} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.recentRoute} numberOfLines={1}>
@@ -339,7 +339,7 @@ export default function Home(): React.JSX.Element {
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, padding: 16, gap: 10, backgroundColor: theme.bg },
-  block: { padding: 14, gap: 10 },
+  block: { ...cardBase, padding: 14, gap: 10 },
   field: { gap: 8 },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   input: {
@@ -366,17 +366,31 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   segRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  seg: {
+  segBase: {
     paddingHorizontal: 16,
     minHeight: theme.tap,
     borderRadius: 12,
-    backgroundColor: '#EDF0F3',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  segOn: { backgroundColor: theme.primary },
-  segText: { fontWeight: '700', color: theme.muted },
-  segTextOn: { color: '#fff' },
+  segOn: {
+    paddingHorizontal: 16,
+    minHeight: theme.tap,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: theme.primary,
+  },
+  segOff: {
+    paddingHorizontal: 16,
+    minHeight: theme.tap,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EDF0F3',
+  },
+  segTextOff: { fontWeight: '700', color: theme.muted },
+  segTextOn: { fontWeight: '700', color: '#fff' },
   timeRow: { flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' },
   timeBtn: {
     flexDirection: 'row',
@@ -389,6 +403,7 @@ const styles = StyleSheet.create({
   },
   timeText: { fontSize: 17, fontWeight: '700', color: theme.text },
   recentCard: {
+    ...cardBase,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,

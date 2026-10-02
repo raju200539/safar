@@ -15,7 +15,7 @@ import { api } from '../src/api/client';
 import { openStopDirections } from '../src/api/navigate';
 import { EmptyState } from '../src/ui/EmptyState';
 import { UiButton } from '../src/ui/UiButton';
-import { shadows, theme, type } from '../src/ui/theme';
+import { cardBase, theme, type } from '../src/ui/theme';
 import type { Place } from '@hyd/shared';
 import '../src/i18n';
 
@@ -75,7 +75,7 @@ export default function Stops(): React.JSX.Element {
   }, [q]);
 
   const stopRow = (item: Place): React.JSX.Element => (
-    <View key={item.stopId ?? `${item.lat},${item.lon}`} style={[shadows.card, styles.row]}>
+    <View key={item.stopId ?? `${item.lat},${item.lon}`} style={styles.row}>
       <Link
         href={{
           pathname: '/stop',
@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   input: { flex: 1, padding: 12, fontSize: 16, color: theme.text },
-  row: { flexDirection: 'row', alignItems: 'center', padding: 12, gap: 8 },
+  row: { ...cardBase, flexDirection: 'row', alignItems: 'center', padding: 12, gap: 8 },
   main: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 },
   name: { fontWeight: '700', fontSize: 15, color: theme.text },
   nav: {

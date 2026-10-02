@@ -5,7 +5,7 @@ import type { Itinerary, Leg } from '@hyd/shared';
 import { getItinerary } from '../src/api/itinerary-store';
 import { openWalkDirections } from '../src/api/navigate';
 import { MapView } from '../src/components/MapView';
-import { shadows, theme } from '../src/ui/theme';
+import { cardBase, theme } from '../src/ui/theme';
 import '../src/i18n';
 
 function modeColor(mode: Leg['mode']): string {
@@ -44,7 +44,7 @@ export default function ItineraryDetail(): React.JSX.Element {
       <Stack.Screen options={{ title: t('resultsTitle') }} />
       <MapView itinerary={trip} />
       {trip.co2SavedKg != null && trip.co2SavedKg > 0 ? (
-        <View style={[styles.co2box, shadows.card]}>
+        <View style={styles.co2box}>
           <Text style={styles.co2}>{t('co2Saved', { kg: trip.co2SavedKg.toFixed(2) })}</Text>
         </View>
       ) : null}
@@ -53,12 +53,14 @@ export default function ItineraryDetail(): React.JSX.Element {
         return (
           <View key={`${trip.id}-${i}`} style={styles.row}>
             <View style={styles.rail}>
-              <View style={[styles.dot, { backgroundColor: modeColor(leg.mode) }]} />
+              <View style={{ ...styles.dotBase, backgroundColor: modeColor(leg.mode) }} />
               {last ? null : <View style={styles.line} />}
             </View>
-            <View style={[styles.card, shadows.card]}>
+            <View style={styles.card}>
               <View style={styles.badgeRow}>
-                <Text style={[styles.badge, { backgroundColor: modeColor(leg.mode) }]}>
+                <Text
+                style={{ ...styles.badgeBase, backgroundColor: modeColor(leg.mode) }}
+              >
                   {modeIcon(leg.mode)} {leg.mode}
                   {leg.route?.shortName && leg.mode !== 'WALK'
                     ? ` · ${leg.route.shortName}`
@@ -101,15 +103,15 @@ export default function ItineraryDetail(): React.JSX.Element {
 
 const styles = StyleSheet.create({
   container: { padding: 16, gap: 4, backgroundColor: theme.bg },
-  co2box: { padding: 12 },
+  co2box: { ...cardBase, padding: 12 },
   co2: { fontWeight: '700', color: theme.live },
   row: { flexDirection: 'row', gap: 10 },
   rail: { alignItems: 'center', width: 16, paddingTop: 18 },
-  dot: { width: 12, height: 12, borderRadius: 6 },
+  dotBase: { width: 12, height: 12, borderRadius: 6 },
   line: { width: 2, flex: 1, backgroundColor: theme.border, marginTop: 2 },
-  card: { flex: 1, padding: 12, gap: 6, marginBottom: 10 },
+  card: { ...cardBase, flex: 1, padding: 12, gap: 6, marginBottom: 10 },
   badgeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  badge: {
+  badgeBase: {
     color: '#fff',
     fontWeight: '700',
     paddingHorizontal: 10,

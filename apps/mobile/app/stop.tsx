@@ -16,7 +16,7 @@ import { api, getDeviceId } from '../src/api/client';
 import { openStopDirections } from '../src/api/navigate';
 import { UiButton } from '../src/ui/UiButton';
 import { EmptyState } from '../src/ui/EmptyState';
-import { shadows, theme, type } from '../src/ui/theme';
+import { cardBase, theme, type } from '../src/ui/theme';
 import type { Arrival, Report } from '@hyd/shared';
 import '../src/i18n';
 
@@ -75,7 +75,7 @@ export default function Stop(): React.JSX.Element {
     <ScrollView style={{ flex: 1, backgroundColor: theme.bg }}>
       <Stack.Screen options={{ title: name ?? t('stopTitle') }} />
       <View style={styles.container}>
-        <View style={[shadows.card, styles.hero]}>
+        <View style={styles.hero}>
           <Ionicons name="bus-outline" size={30} color={theme.primary} />
           <View style={{ flex: 1 }}>
             <Text style={type.h2}>{name}</Text>
@@ -99,17 +99,13 @@ export default function Stop(): React.JSX.Element {
           <EmptyState title={t('departures')} message={t('noDepartures')} icon="bus" />
         ) : null}
         {arrivals?.map((a, i) => (
-          <View key={`${a.scheduledTime}-${i}`} style={[shadows.card, styles.dep]}>
+          <View key={`${a.scheduledTime}-${i}`} style={styles.dep}>
             <View style={styles.depTop}>
               <Text style={styles.bus}>
                 {a.routeShortName} → {a.headsign}
               </Text>
               <Text
-                style={[
-                  styles.src,
-                  { backgroundColor: a.source === 'live' ? theme.live : '#EDF0F3' },
-                  a.source === 'live' ? { color: '#fff' } : { color: theme.muted },
-                ]}
+                style={a.source === 'live' ? styles.srcLive : styles.srcSched}
               >
                 {a.source === 'live' ? t('live') : t('scheduled')}
               </Text>
@@ -132,10 +128,10 @@ export default function Stop(): React.JSX.Element {
           {TYPES.map((ty) => (
             <Pressable
               key={ty}
-              style={[styles.chip, rtype === ty && styles.chipOn]}
+              style={rtype === ty ? styles.chipOn : styles.chipOff}
               onPress={() => setRtype(ty)}
             >
-              <Text style={[styles.chipText, rtype === ty && styles.chipTextOn]}>
+              <Text style={rtype === ty ? styles.chipTextOn : styles.chipTextOff}>
                 {t(
                   ty === 'NOT_RUNNING'
                     ? 'reportNotRunning'
@@ -165,17 +161,37 @@ export default function Stop(): React.JSX.Element {
 
 const styles = StyleSheet.create({
   container: { padding: 16, gap: 10 },
-  hero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
-  dep: { padding: 12, gap: 4 },
+  hero: { ...cardBase, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+  dep: { ...cardBase, padding: 12, gap: 4 },
   depTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   bus: { fontWeight: '700', color: theme.text, flex: 1 },
-  src: {
+  srcBase: {
     fontWeight: '700',
     fontSize: 12,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 10,
     overflow: 'hidden',
+  },
+  srcLive: {
+    fontWeight: '700',
+    fontSize: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: theme.live,
+    color: '#fff',
+  },
+  srcSched: {
+    fontWeight: '700',
+    fontSize: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#EDF0F3',
+    color: theme.muted,
   },
   time: { fontSize: 17, fontWeight: '600', color: theme.text },
   input: {
@@ -187,7 +203,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   types: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
+  chipOff: {
     borderWidth: 1,
     borderColor: theme.border,
     borderRadius: 20,
@@ -196,7 +212,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: '#fff',
   },
-  chipOn: { backgroundColor: theme.primary, borderColor: theme.primary },
-  chipText: { color: theme.text, fontWeight: '600' },
-  chipTextOn: { color: '#fff' },
+  chipOn: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    minHeight: 40,
+    justifyContent: 'center',
+    backgroundColor: theme.primary,
+    borderColor: theme.primary,
+  },
+  chipTextOff: { color: theme.text, fontWeight: '600' },
+  chipTextOn: { color: '#fff', fontWeight: '600' },
 });

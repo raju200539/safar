@@ -7,8 +7,7 @@ import { ApiError, api, addRecentSearch } from '../src/api/client';
 import { putItinerary } from '../src/api/itinerary-store';
 import { fmtTime } from '../src/api/format';
 import { EmptyState } from '../src/ui/EmptyState';
-import { shadows, theme, type } from '../src/ui/theme';
-import type { Itinerary } from '@hyd/shared';
+import { cardBase, theme } from '../src/ui/theme';import type { Itinerary } from '@hyd/shared';
 import '../src/i18n';
 
 function fmtDur(sec: number): string {
@@ -115,7 +114,7 @@ export default function Results(): React.JSX.Element {
             const longWalk = it.walkDistanceM > 1500;
             return (
               <Link key={it.id} href={{ pathname: '/itinerary', params: { id } }} asChild>
-                <Pressable style={[shadows.card, styles.card]}>
+                <Pressable style={styles.card}>
                   <View style={styles.topRow}>
                     <Text style={styles.times}>
                       {fmtTime(it.startTime)} – {fmtTime(it.endTime)}
@@ -160,7 +159,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   notice: { flex: 1, color: theme.text, fontStyle: 'italic' },
-  card: { padding: 16, gap: 6 },
+  card: { ...cardBase, padding: 16, gap: 6 },
   topRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   times: { fontSize: 19, fontWeight: '800', color: theme.text, flex: 1 },
   durPill: { backgroundColor: '#E7F2ED', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
