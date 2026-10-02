@@ -45,6 +45,14 @@ export default function Results(): React.JSX.Element {
     | { kind: 'done'; items: Itinerary[] }
   >({ kind: 'loading' });
 
+  const refTime = p.when ? new Date(p.when) : new Date();
+  const refHour = refTime.getHours();
+  const metroClosed =
+    state.kind === 'done' &&
+    state.items.length > 0 &&
+    (refHour >= 23 || refHour < 6) &&
+    state.items.every((it) => it.legs.every((l) => l.mode !== 'METRO'));
+
   useEffect(() => {
     let live = true;
     const fromLat = Number(p.fromLat);
@@ -106,6 +114,12 @@ export default function Results(): React.JSX.Element {
         <View style={styles.noticeBox}>
           <Ionicons name="time-outline" size={18} color={theme.warning} />
           <Text style={styles.notice}>{t('limitedService')}</Text>
+        </View>
+      ) : null}
+      {metroClosed ? (
+        <View style={styles.noticeBox}>
+          <Ionicons name="train-outline" size={18} color={theme.warning} />
+          <Text style={styles.notice}>{t('metroClosed')}</Text>
         </View>
       ) : null}
       {state.kind === 'done'
