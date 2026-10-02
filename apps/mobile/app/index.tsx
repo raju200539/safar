@@ -3,7 +3,6 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Button,
-  FlatList,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -164,11 +163,10 @@ export default function Home(): React.JSX.Element {
         }}
       />
       {results.length > 0 ? (
-        <FlatList
-          data={results}
-          keyExtractor={(p) => p.stopId ?? p.name}
-          renderItem={({ item }) => (
+        <View>
+          {results.map((item) => (
             <Pressable
+              key={item.stopId ?? item.name}
               style={styles.suggest}
               onPress={() =>
                 choose(which, { name: item.name, lat: item.lat, lon: item.lon }, item.name)
@@ -176,8 +174,8 @@ export default function Home(): React.JSX.Element {
             >
               <Text>{item.name}</Text>
             </Pressable>
-          )}
-        />
+          ))}
+        </View>
       ) : null}
       <View style={styles.row}>
         <Button title={t('useLocation')} onPress={() => void useLocation(which)} />
