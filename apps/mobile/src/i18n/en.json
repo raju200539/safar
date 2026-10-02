@@ -21,6 +21,7 @@
   "cityLocked": "Safar is live in Hyderabad for now. More cities are on the way.",
   "resultsTitle": "Trip options",
   "noTrips": "No bus or Metro route found. Try nearby stops or a different time.",
+  "noTripsHint": "Nothing runs late at night. Use Depart at on the previous screen with a morning time like 10:00.",
   "transfers": "transfers",
   "transfer": "transfer",
   "walk": "walk",

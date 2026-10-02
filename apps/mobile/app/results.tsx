@@ -108,6 +108,12 @@ export default function Results(): React.JSX.Element {
       {state.kind === 'done' && state.items.length === 0 ? (
         <EmptyState title={t('resultsTitle')} message={t('noTrips')} icon="bus" />
       ) : null}
+      {state.kind === 'done' && state.items.length === 0 ? (
+        <View style={styles.noticeBox}>
+          <Ionicons name="time-outline" size={18} color={theme.warning} />
+          <Text style={styles.notice}>{t('noTripsHint')}</Text>
+        </View>
+      ) : null}
       {state.kind === 'done' &&
       state.items.length > 0 &&
       state.items.every((it) => it.transfers >= 2) ? (
