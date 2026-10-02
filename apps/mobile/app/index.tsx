@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import { useTranslation } from 'react-i18next';
-import { api, getRecentSearches, type RecentSearch } from '../src/api/client';
+import { api, getBaseUrl, getRecentSearches, type RecentSearch } from '../src/api/client';
 import type { HealthStatus, Place } from '@hyd/shared';
 import '../src/i18n';
 
@@ -210,7 +210,9 @@ export default function Home(): React.JSX.Element {
           ))}
         </View>
       ) : null}
-      <Text style={styles.health}>API: {health}</Text>
+      <Text style={styles.health}>
+        API: {health} ({getBaseUrl()})
+      </Text>
     </View>
   );
 }

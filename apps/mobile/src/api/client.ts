@@ -5,6 +5,11 @@ import type { Arrival, HealthStatus, Itinerary, Place, Report } from '@hyd/share
 const BASE =
   process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:3000';
 
+/** Shown on the home screen so connection problems are diagnosable. */
+export function getBaseUrl(): string {
+  return BASE;
+}
+
 export class ApiError extends Error {
   code: string;
   status: number;
