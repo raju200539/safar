@@ -1,11 +1,13 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { Button, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { Itinerary, Leg } from '@hyd/shared';
 import { getItinerary } from '../src/api/itinerary-store';
 import { fmtTime } from '../src/api/format';
+import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { openWalkDirections } from '../src/api/navigate';
+import { openTripTransit, openWalkDirections } from '../src/api/navigate';
+import { UiButton } from '../src/ui/UiButton';
 import { MapView } from '../src/components/MapView';
 import { cardBase, theme } from '../src/ui/theme';
 import { ScreenBack } from '../src/ui/ScreenBack';
@@ -31,6 +33,10 @@ function StopsToggle({
       {open ? <Text style={styles.stops}>{stops.join(' · ')}</Text> : null}
     </View>
   );
+}
+
+function totalFare(trip: Itinerary): number {
+  return trip.legs.reduce((a, l) => a + (l.fareInr ?? 0), 0);
 }
 
 function modeColor(mode: Leg['mode']): string {
@@ -65,13 +71,29 @@ export default function ItineraryDetail(): React.JSX.Element {
   }
   const trip: Itinerary = it;
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <View style={styles.page}>
+      <ScrollView contentContainerStyle={styles.container}>
       <Stack.Screen
         options={{ title: t('resultsTitle'), headerLeft: () => <ScreenBack /> }}
       />
       <MapView itinerary={trip} />
+      <View style={styles.summary}>
+        <Text style={styles.summaryRoute} numberOfLines={2}>
+          {trip.legs[0]?.from.name} → {trip.legs[trip.legs.length - 1]?.to.name}
+        </Text>
+        <Text style={styles.summaryTimes}>
+          {fmtTime(trip.startTime)} – {fmtTime(trip.endTime)} ·{' '}
+          {Math.round(trip.durationSec / 60)} min · {trip.transfers}{' '}
+          {trip.transfers === 1 ? t('transfer') : t('transfers')}
+        </Text>
+        {totalFare(trip) > 0 ? (
+          <Text style={styles.summaryFare}>
+            {t('totalFare')}: ₹{totalFare(trip)}
+          </Text>
+        ) : null}
+      </View>
       {trip.note ? (
-        <View style={[styles.co2box, styles.noteBox]}>
+        <View style={styles.noteBox}>
           <Text style={styles.note}>{trip.note}</Text>
         </View>
       ) : null}
@@ -135,8 +157,9 @@ export default function ItineraryDetail(): React.JSX.Element {
                 <Text style={styles.fareNote}>{t('busFareNote')}</Text>
               ) : null}
               {leg.mode === 'WALK' ? (
-                <Button
+                <UiButton
                   title={t('navigateWalk')}
+                  variant="secondary"
                   onPress={() =>
                     void openWalkDirections(
                       leg.from.lat,
@@ -151,12 +174,26 @@ export default function ItineraryDetail(): React.JSX.Element {
           </View>
         );
       })}
-    </ScrollView>
+      </ScrollView>
+      <View style={styles.bottomBar}>
+        <UiButton
+          title={t('navigateTrip')}
+          onPress={() => void openTripTransit(trip)}
+          icon={<Ionicons name="navigate" size={20} color="#fff" />}
+        />
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  page: { flex: 1, backgroundColor: theme.bg },
   container: { padding: 16, gap: 4, backgroundColor: theme.bg },
+  bottomBar: { padding: 16, paddingTop: 8, backgroundColor: theme.bg },
+  summary: { ...cardBase, padding: 14, gap: 4 },
+  summaryRoute: { fontSize: 17, fontWeight: '800', color: theme.text },
+  summaryTimes: { fontSize: 14, fontWeight: '600', color: theme.primaryDark },
+  summaryFare: { fontSize: 14, fontWeight: '700', color: theme.primaryDark },
   co2box: { ...cardBase, padding: 12 },
   noteBox: { backgroundColor: theme.warningBg },
   note: { color: theme.warning, fontStyle: 'italic' },

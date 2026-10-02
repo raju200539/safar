@@ -35,6 +35,17 @@ export async function openWalkDirections(
   await Linking.openURL(mapsDirUrl(fromLat, fromLon, toLat, toLon, 'walking'));
 }
 
+export async function openTripTransit(it: {
+  legs: Array<{ from: { lat: number; lon: number }; to: { lat: number; lon: number } }>;
+}): Promise<void> {
+  const first = it.legs[0];
+  const last = it.legs[it.legs.length - 1];
+  if (!first || !last) return;
+  await Linking.openURL(
+    mapsDirUrl(first.from.lat, first.from.lon, last.to.lat, last.to.lon, 'transit'),
+  );
+}
+
 export async function openStopDirections(
   lat: number,
   lon: number,
