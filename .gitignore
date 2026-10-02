@@ -23,7 +23,6 @@ hmrl-debug.log
 pgdata/
 
 # pnpm
-pnpm-lock.yaml
 .pnpm-store/
 
 # Logs / OS
