@@ -31,5 +31,7 @@ async function bootstrap(): Promise<void> {
   const port = Number(process.env.PORT ?? 3000);
   await app.listen(port);
 }
-// eslint-disable-next-line no-console
-bootstrap().catch((err) => console.error(err));
+
+bootstrap().catch((err: unknown) => {
+  console.error(err);
+});
