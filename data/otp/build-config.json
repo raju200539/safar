@@ -1,6 +1,10 @@
 {
-  "transit": true,
-  "net": "file:///var/opentripplanner/osm/hyderabad.osm.pbf",
+  "configVersion": "hyd-v1",
+  "osm": [
+    {
+      "source": "file:///var/opentripplanner/osm/hyderabad.osm.pbf"
+    }
+  ],
   "transitFeeds": [
     {
       "type": "gtfs",
@@ -10,7 +14,9 @@
     {
       "type": "gtfs",
       "source": "file:///var/opentripplanner/gtfs/hmrl.zip",
-      "feedId": "hmrl"
+      "feedId": "hmrl",
+      "blockBasedInterlining": false
     }
-  ]
+  ],
+  "transitModelTimeZone": "Asia/Kolkata"
 }

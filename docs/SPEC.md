@@ -107,7 +107,7 @@ Principles:
 ## 2.2 Tech stack
 - Mobile: Expo (SDK 57 stable), React Native, TypeScript, Expo Router, `react-native-maps` (works in Expo Go; wrap in a `MapView` component so MapLibre can replace it later), `@mapbox/polyline` for decoding geometry, `i18next` for strings.
 - API: NestJS (TypeScript), class-validator, Jest.
-- Routing: OpenTripPlanner 2.10.0 in Docker (pinned), fed with the two GTFS feeds plus an OpenStreetMap extract. Use OTP's GTFS GraphQL API.
+- Routing: OpenTripPlanner 2.9.0 in Docker (pinned), fed with the two GTFS feeds plus an OpenStreetMap extract. Use OTP's GTFS GraphQL API. (2.10.0 was tried first and rejected: every transit search crashes with it on this data — see `docs/otp-queries.md`.)
 - Storage: Postgres 16 (Docker) for reports and live-to-GTFS ID mappings; in-memory cache behind a `LiveCache` port (Redis later).
 - Monorepo: pnpm workspaces (pnpm 10.x).
 

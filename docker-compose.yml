@@ -13,20 +13,31 @@ services:
       - pgdata:/var/lib/postgresql/data
 
   otp:
-    # Pinned OTP 2.x — verified latest 2.10.0 (Sep 2026).
-    # Source: https://github.com/opentripplanner/OpenTripPlanner/releases
-    image: opentripplanner/opentripplanner:2.10.0
+    # Pinned OTP 2.x. NOTE: 2.10.0 (Sep 2026) crashes on every transit search
+    # with this data ("Index N out of bounds for length 0" in Raptor;
+    # isolated to both feeds, direct-walk works). 2.9.0 routes correctly.
+    # Re-evaluate 2.10.x+ before upgrading. Releases:
+    # https://github.com/opentripplanner/OpenTripPlanner/releases
+    image: opentripplanner/opentripplanner:2.9.0
+    # The image entrypoint always appends /var/opentripplanner/ as the input
+    # directory. build-config.json / router-config.json are read from that
+    # dir; GTFS/OSM via absolute file:// URIs in build-config.json, so feed
+    # file names do not need the "gtfs" infix.
     container_name: hyd-otp
     restart: unless-stopped
     ports:
       - '8080:8080'
+    environment:
+      JAVA_TOOL_OPTIONS: '-Xmx4g'
+    # The image entrypoint always appends /var/opentripplanner/ as the input
+    # directory, so flags only here. build-config.json / router-config.json
+    # are read from that dir; GTFS/OSM via absolute file:// URIs in config.
     volumes:
+      - ./data/otp:/var/opentripplanner
       - ./data/gtfs:/var/opentripplanner/gtfs:ro
       - ./data/osm:/var/opentripplanner/osm:ro
-      - ./data/otp:/var/opentripplanner/otp:ro
     command:
       - '--build'
-      - '/var/opentripplanner/otp'
       - '--serve'
 
 volumes:
