@@ -73,4 +73,12 @@ describe('rankItineraries', () => {
     const b = itin('b', [walk(900), bus('tgsrtc:218'), walk(50)]);
     expect(itinerarySignature(a)).toBe(itinerarySignature(b));
   });
+
+  it('prefers options that use different routes', () => {
+    const a = itin('a', [bus('tgsrtc:218')]);
+    const b = itin('b', [bus('tgsrtc:218', 'X', 'Y')]);
+    const c = itin('c', [bus('tgsrtc:219')]);
+    const d = itin('d', [bus('tgsrtc:218', 'P', 'Q')]);
+    expect(rankItineraries([a, b, c, d]).map((i) => i.id)).toEqual(['a', 'c', 'b']);
+  });
 });

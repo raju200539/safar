@@ -84,7 +84,9 @@ function hasAbsurdWalk(it: Itinerary): boolean {
 
 /**
  * OTP returns near-duplicates (same route, minutes apart). Keep the earliest
- * of each distinct signature, drop absurd walks unless nothing else exists.
+ * of each distinct signature, drop absurd walks unless nothing else exists,
+ * and prefer a set that uses *different routes* so the rider sees genuinely
+ * different ways to go (e.g. a 16A option next to a metro option).
  * Output is sorted by departure (arrival-time order).
  */
 export function rankItineraries(input: Itinerary[]): Itinerary[] {
@@ -101,5 +103,47 @@ export function rankItineraries(input: Itinerary[]): Itinerary[] {
   }
   if (distinct.length === 0) return [];
   const sane = distinct.filter((it) => !hasAbsurdWalk(it));
-  return sane.length > 0 ? sane : distinct.slice(0, 1);
+  const pool = sane.length > 0 ? sane : distinct.slice(0, 1);
+  return diversify(pool);
+}
+
+function routeIdsOf(it: Itinerary): Set<string> {
+  const s = new Set<string>();
+  for (const l of it.legs) {
+    if (l.mode !== 'WALK' && l.route?.id) s.add(l.route.id);
+  }
+  return s;
+}
+
+/** Greedily pick options that introduce unseen routes, then fill by time. */
+function diversify(pool: Itinerary[]): Itinerary[] {
+  const picked: Itinerary[] = [];
+  const covered = new Set<string>();
+  const rest = [...pool];
+  while (picked.length < MAX_ITINERARIES && rest.length > 0) {
+    let best = 0;
+    let bestNew = -1;
+    for (let i = 0; i < rest.length; i++) {
+      let fresh = 0;
+      for (const r of routeIdsOf(rest[i] as Itinerary)) {
+        if (!covered.has(r)) fresh += 1;
+      }
+      if (fresh > bestNew) {
+        bestNew = fresh;
+        best = i;
+      }
+    }
+    const [next] = rest.splice(best, 1);
+    if (!next) break;
+    picked.push(next);
+    for (const r of routeIdsOf(next)) covered.add(r);
+    if (bestNew === 0) {
+      // Nothing new left to cover: take the rest in time order.
+      picked.push(...rest.slice(0, MAX_ITINERARIES - picked.length));
+      break;
+    }
+  }
+  return picked
+    .slice(0, MAX_ITINERARIES)
+    .sort((a, b) => (a.startTime < b.startTime ? -1 : 1));
 }
