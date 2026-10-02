@@ -35,7 +35,8 @@ with plain-language boarding instructions. See `docs/SPEC.md`.
 6. Start API: `pnpm dev:api` → `GET http://localhost:3000/health`
    (`status: ok` once OTP + DB are reachable).
 7. Start mobile: `pnpm dev:mobile` → scan QR with Expo Go (Android).
-   Set `EXPO_PUBLIC_API_BASE_URL` to `http://<laptop-LAN-IP>:3000`.
+   Set `EXPO_PUBLIC_API_BASE_URL` in `apps/mobile/.env` to
+   `http://<laptop-LAN-IP>:3000` (Expo only reads .env inside apps/mobile).
 
 ## API (v1)
 
