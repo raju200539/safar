@@ -11,6 +11,8 @@ export interface LatLon {
 export interface Place extends LatLon {
   name: string;
   stopId?: string;
+  /** Straight-line distance from the query point, when known (nearby). */
+  distanceM?: number;
 }
 
 export interface LegRoute {

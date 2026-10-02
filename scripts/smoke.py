@@ -50,10 +50,10 @@ bus_legs = [l for t in trips for l in t["legs"] if l["mode"] in ("BUS", "METRO")
 check("plan has transit leg", len(bus_legs) > 0)
 check("leg instruction", all(l.get("instruction") for t in trips for l in t["legs"]))
 
-# M2: metro trip Miyapur -> LB Nagar
+# M2: metro trip Miyapur -> LB Nagar (daytime: metro runs ~06:00-23:00)
 s, metro = call(
     "GET",
-    "/v1/plan?fromLat=17.4965&fromLon=78.373&toLat=17.345&toLon=78.552",
+    "/v1/plan?fromLat=17.4965&fromLon=78.373&toLat=17.345&toLon=78.552&when=2026-10-05T10:00:00%2B05:30",
 )
 check("metro plan", s == 200 and any(
     l["mode"] == "METRO" for t in metro for l in t["legs"]), f"status={s}")

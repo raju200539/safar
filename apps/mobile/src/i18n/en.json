@@ -39,5 +39,8 @@
   "error": "Something went wrong. Check your connection and try again.",
   "dataCredit": "Bus data: contains data provided by TGSRTC. Metro data: HMRL via OpenCity.",
   "stopTitle": "Stop",
+  "nearbyStops": "Nearest stops",
+  "locationNeeded": "Location permission is needed to find nearby stops.",
+  "retry": "Retry",
   "m0note": "Bus + Metro planner for Hyderabad."
 }

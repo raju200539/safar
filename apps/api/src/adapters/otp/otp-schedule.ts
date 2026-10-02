@@ -46,7 +46,10 @@ export class OtpSchedule implements TransitSchedule {
     const data = await this.client.query<{
       stopsByRadius?: {
         edges?: Array<{
-          node?: { distance?: number; stop?: OtpStopNode | null } | null;
+          node?: {
+            distance?: number;
+            stop?: OtpStopNode | null;
+          } | null;
         } | null> | null;
       } | null;
     }>(STOPS_BY_RADIUS_QUERY, {
@@ -57,12 +60,16 @@ export class OtpSchedule implements TransitSchedule {
     });
     const out: Place[] = [];
     for (const e of data.stopsByRadius?.edges ?? []) {
-      const s = e?.node?.stop;
-      if (!s) continue;
-      const place = mapStop(s);
-      if (place) out.push(place);
+      const node = e?.node;
+      if (!node?.stop) continue;
+      const place = mapStop(node.stop);
+      if (!place) continue;
+      if (node.distance != null) place.distanceM = Math.round(Number(node.distance));
+      out.push(place);
       if (out.length >= MAX_LIMIT) break;
     }
+    // Nearest first (backend usually returns ordered, but be explicit).
+    out.sort((a, b) => (a.distanceM ?? 1e9) - (b.distanceM ?? 1e9));
     return dedupePlaces(out);
   }
 
