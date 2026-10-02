@@ -19,9 +19,13 @@ function fmtDur(sec: number): string {
   return `${Math.floor(m / 60)}h ${m % 60}m`;
 }
 
-function legColor(mode: string): string {
-  if (mode === 'BUS') return theme.bus;
-  if (mode === 'METRO') return theme.metro;
+function legColor(l: { mode: string; route?: { color?: string } }): string {
+  if (l.mode === 'BUS') return theme.bus;
+  if (l.mode === 'METRO') {
+    const c = (l.route?.color ?? '').replace(/^#/, '');
+    if (/^[0-9a-fA-F]{6}$/.test(c)) return `#${c.toUpperCase()}`;
+    return theme.metro;
+  }
   return '#B9C0CC';
 }
 
@@ -49,7 +53,7 @@ function StageStrip({ legs }: { legs: Itinerary['legs'] }): React.JSX.Element {
               flexGrow: Math.max(1, l.durationSec),
               flexBasis: 0,
               minHeight: 30,
-              backgroundColor: l.mode === 'WALK' ? '#EDF0F3' : legColor(l.mode),
+              backgroundColor: l.mode === 'WALK' ? '#EDF0F3' : legColor(l),
               borderRadius: 8,
               alignItems: 'center',
               justifyContent: 'center',

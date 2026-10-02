@@ -19,6 +19,7 @@ export interface OtpStopRef {
   lat?: number | null;
   lon?: number | null;
   platformCode?: string | null;
+  parentStation?: { gtfsId?: string | null; name?: string | null } | null;
 }
 
 export interface OtpPlace {
@@ -49,6 +50,7 @@ export interface OtpLeg {
     gtfsId?: string | null;
     shortName?: string | null;
     longName?: string | null;
+    color?: string | null;
     agency?: { name?: string | null } | null;
   } | null;
   trip?: {
@@ -110,21 +112,32 @@ export function toISO(
   return new Date(ms).toISOString();
 }
 
+/**
+ * OTP appends " ???" to some GTFS names when a translation is missing.
+ * Strip it: riders should never see feed-internal markers.
+ */
+export function cleanName(raw: string | null | undefined, fallback: string): string {
+  const s = (raw ?? '').replace(/\s*\?+\s*$/g, '').trim();
+  return s || fallback;
+}
+
 function toPlace(p: OtpPlace | null | undefined, fallback: string): Place {
   const stop = p?.stop;
   const place: Place = {
-    name: stop?.name ?? p?.name ?? fallback,
+    name: cleanName(stop?.name ?? p?.name, fallback),
     lat: Number(stop?.lat ?? p?.lat ?? 0),
     lon: Number(stop?.lon ?? p?.lon ?? 0),
     stopId: stop?.gtfsId ?? undefined,
   };
   if (stop?.platformCode) place.platformCode = stop.platformCode;
+  const station = stop?.parentStation?.name ?? stop?.parentStation?.gtfsId;
+  if (station) place.station = station;
   return place;
 }
 
 function toIntermediate(stop: OtpStopRef): Place {
   const place: Place = {
-    name: stop.name ?? stop.code ?? 'Stop',
+    name: cleanName(stop.name ?? stop.code, 'Stop'),
     lat: Number(stop.lat ?? 0),
     lon: Number(stop.lon ?? 0),
     stopId: stop.gtfsId ?? undefined,
@@ -209,12 +222,15 @@ export function mapLeg(leg: OtpLeg): Leg | null {
   };
   if (leg.distance != null) mapped.distanceM = Math.round(Number(leg.distance));
   if (mode !== 'WALK') {
-    mapped.route = {
+    const route: NonNullable<Leg['route']> = {
       id: leg.route?.gtfsId ?? shortNameOf(leg),
       shortName: shortNameOf(leg),
       longName: leg.route?.longName ?? undefined,
       agency: leg.route?.agency?.name ?? '',
     };
+    const color = (leg.route?.color ?? '').replace(/^#/, '');
+    if (/^[0-9a-fA-F]{6}$/.test(color)) route.color = color.toUpperCase();
+    mapped.route = route;
     const rawHeadsign =
       leg.headsign ?? leg.trip?.tripHeadsign ?? leg.trip?.tripShortName;
     if (rawHeadsign) mapped.headsign = cleanHeadsign(rawHeadsign, mapped.route?.shortName);
@@ -238,15 +254,26 @@ export function mapLeg(leg: OtpLeg): Leg | null {
 /**
  * Same-station transfers (e.g. Blue→Red at Ameerpet) arrive as short WALK
  * legs. Rewrite them as interchange instructions naming the next line and
- * platform instead of "walk N m".
+ * platform instead of "walk N m". Stations match by parent station id/name
+ * (platforms of one station have different stop names) with a normalized
+ * name fallback.
  */
+export function stationKey(p: Place): string | null {
+  const raw = p.station ?? p.name ?? '';
+  const norm = raw
+    .toLowerCase()
+    .replace(/metro|station|railway/g, '')
+    .replace(/[^a-z0-9]/g, '');
+  return norm || null;
+}
+
 export function applyInterchangeHints(legs: Leg[]): void {
   for (let i = 0; i < legs.length; i++) {
     const leg = legs[i] as Leg;
     const next = legs[i + 1] as Leg | undefined;
     if (!leg || leg.mode !== 'WALK' || !next || next.mode === 'WALK') continue;
-    const a = leg.from.name.trim().toLowerCase();
-    const b = leg.to.name.trim().toLowerCase();
+    const a = stationKey(leg.from);
+    const b = stationKey(leg.to);
     if (!a || a !== b) continue;
     const line = next.route?.shortName ?? (next.mode === 'METRO' ? 'metro' : 'bus');
     const platform = next.from.platformCode
@@ -318,7 +345,7 @@ export interface OtpStopNode {
 export function mapStop(s: OtpStopNode): Place | null {
   if (!s.gtfsId || s.lat == null || s.lon == null) return null;
   return {
-    name: s.name ?? s.code ?? 'Stop',
+    name: cleanName(s.name ?? s.code, 'Stop'),
     lat: Number(s.lat),
     lon: Number(s.lon),
     stopId: s.gtfsId,

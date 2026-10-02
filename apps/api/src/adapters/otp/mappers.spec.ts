@@ -1,6 +1,7 @@
 import {
   applyInterchangeHints,
   cleanHeadsign,
+  cleanName,
   dedupePlaces,
   estimateCo2SavedKg,
   mapDepartures,
@@ -187,6 +188,31 @@ describe('mappers', () => {
     applyInterchangeHints([blue, walk, red]);
     expect(walk.instruction).toContain('Change here at Ameerpet');
     expect(walk.instruction).toContain('Platform 2');
+  });
+
+  it('matches interchanges by parent station across platform names', () => {
+    const mk = (from: string, to: string, station?: string): import('@hyd/shared').Leg => ({
+      mode: 'WALK',
+      from: { name: from, lat: 1, lon: 1, ...(station ? { station } : {}) },
+      to: { name: to, lat: 1, lon: 1, ...(station ? { station } : {}) },
+      startTime: '2026-10-05T10:00:00+05:30',
+      endTime: '2026-10-05T10:05:00+05:30',
+      durationSec: 300,
+      geometry: '',
+      instruction: '',
+    });
+    const next = mapLeg(BUS_LEG);
+    if (!next) throw new Error('fixture failed');
+    next.mode = 'METRO';
+    next.route = { id: 'hmrl:BLUE', shortName: 'Blue Line', agency: 'HMRL' };
+    const w = mk('Ameerpet Metro', 'Ameerpet', 'Ameerpet');
+    applyInterchangeHints([mk('X', 'Y'), w, next]);
+    expect(w.instruction).toContain('Change here');
+  });
+
+  it('strips OTP translation markers from names', () => {
+    expect(cleanName('Ameerpet ???', 'X')).toBe('Ameerpet');
+    expect(cleanName(null, 'Fallback')).toBe('Fallback');
   });
 
   it('cleans echoed route prefixes from headsigns', () => {

@@ -17,6 +17,8 @@ export interface Place extends LatLon {
   kind?: 'stop' | 'place';
   /** Platform code when the stop is a metro platform (e.g. "1"). */
   platformCode?: string;
+  /** Parent station name for metro platforms (interchange matching). */
+  station?: string;
 }
 
 export interface LegRoute {
@@ -24,6 +26,8 @@ export interface LegRoute {
   shortName: string;
   longName?: string;
   agency: string;
+  /** GTFS route_color hex (no #), e.g. metro Red E31E24. */
+  color?: string;
 }
 
 export interface Leg {

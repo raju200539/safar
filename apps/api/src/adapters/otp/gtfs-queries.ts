@@ -46,6 +46,10 @@ export const PLAN_QUERY = /* GraphQL */ `
                 code
                 name
                 platformCode
+                parentStation {
+                  gtfsId
+                  name
+                }
               }
             }
             to {
@@ -57,12 +61,17 @@ export const PLAN_QUERY = /* GraphQL */ `
                 code
                 name
                 platformCode
+                parentStation {
+                  gtfsId
+                  name
+                }
               }
             }
             route {
               gtfsId
               shortName
               longName
+              color
               agency {
                 name
               }

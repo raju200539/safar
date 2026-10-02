@@ -40,9 +40,15 @@ function totalFare(trip: Itinerary): number {
   return trip.legs.reduce((a, l) => a + (l.fareInr ?? 0), 0);
 }
 
-function modeColor(mode: Leg['mode']): string {
-  if (mode === 'BUS') return theme.bus;
-  if (mode === 'METRO') return theme.metro;
+function metroColor(route?: { color?: string }): string {
+  const c = (route?.color ?? '').replace(/^#/, '');
+  if (/^[0-9a-fA-F]{6}$/.test(c)) return `#${c.toUpperCase()}`;
+  return theme.metro;
+}
+
+function modeColor(leg: Leg): string {
+  if (leg.mode === 'BUS') return theme.bus;
+  if (leg.mode === 'METRO') return metroColor(leg.route);
   return theme.walk;
 }
 
@@ -124,13 +130,13 @@ export default function ItineraryDetail(): React.JSX.Element {
         return (
           <View key={`${trip.id}-${i}`} style={styles.row}>
             <View style={styles.rail}>
-              <View style={{ ...styles.dotBase, backgroundColor: modeColor(leg.mode) }} />
+              <View style={{ ...styles.dotBase, backgroundColor: modeColor(leg) }} />
               {last ? null : <View style={styles.line} />}
             </View>
             <View style={styles.card}>
               <View style={styles.badgeRow}>
                 <Text
-                style={{ ...styles.badgeBase, backgroundColor: modeColor(leg.mode) }}
+                style={{ ...styles.badgeBase, backgroundColor: modeColor(leg) }}
               >
                   {modeIcon(leg.mode)} {leg.mode}
                   {leg.route?.shortName && leg.mode !== 'WALK'
@@ -157,16 +163,17 @@ export default function ItineraryDetail(): React.JSX.Element {
                   {fmtTime(leg.startTime)} → {fmtTime(leg.endTime)}
                 </Text>
               ) : null}
-              {leg.mode !== 'WALK' && (leg.fareInr != null || leg.from.platformCode) ? (
+              {leg.mode !== 'WALK' && leg.from.platformCode ? (
                 <View style={styles.tagRow}>
-                  {leg.fareInr != null ? (
-                    <Text style={styles.fare}>{t('fare', { inr: leg.fareInr })}</Text>
-                  ) : null}
-                  {leg.from.platformCode ? (
-                    <Text style={styles.platform}>
-                      {t('platform', { n: leg.from.platformCode })}
-                    </Text>
-                  ) : null}
+                  <Text
+                    style={{
+                      ...styles.platformBase,
+                      backgroundColor:
+                        leg.mode === 'METRO' ? metroColor(leg.route) : theme.bus,
+                    }}
+                  >
+                    {t('platform', { n: leg.from.platformCode })}
+                  </Text>
                 </View>
               ) : null}
               {leg.intermediateStops && leg.intermediateStops.length > 0 ? (
@@ -252,7 +259,7 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     overflow: 'hidden',
   },
-  platform: {
+  platformBase: {
     fontWeight: '700',
     color: '#fff',
     backgroundColor: theme.metro,
