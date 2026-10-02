@@ -2,20 +2,25 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Button,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
+import * as Location from 'expo-location';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import { api, getDeviceId } from '../src/api/client';
-import { fmtDateTime, fmtTime } from '../src/api/format';
 import { openStopDirections } from '../src/api/navigate';
-import { shadows, theme } from '../src/ui/theme';
+import { UiButton } from '../src/ui/UiButton';
+import { EmptyState } from '../src/ui/EmptyState';
+import { shadows, theme, type } from '../src/ui/theme';
 import type { Arrival, Report } from '@hyd/shared';
 import '../src/i18n';
+
+import { fmtDateTime, fmtTime } from '../src/api/format';
 
 const TYPES = ['NOT_RUNNING', 'DIVERTED', 'OVERCROWDED', 'OTHER'] as const;
 
@@ -67,83 +72,131 @@ export default function Stop(): React.JSX.Element {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <ScrollView style={{ flex: 1, backgroundColor: theme.bg }}>
       <Stack.Screen options={{ title: name ?? t('stopTitle') }} />
-      {lat != null && lon != null ? (
-        <Button
-          title={t('directionsToStop')}
-          onPress={() => void openStopDirections(Number(lat), Number(lon), name ?? t('stopTitle'))}
-        />
-      ) : null}
-      {error ? <Text>{error}</Text> : null}
-      <Text style={styles.h}>{t('departures')}</Text>
-      {arrivals == null ? <ActivityIndicator /> : null}
-      {arrivals?.length === 0 ? <Text>{t('noDepartures')}</Text> : null}
-      {arrivals?.map((a, i) => (
-        <View key={`${a.scheduledTime}-${i}`} style={styles.row}>
-          <Text style={styles.bus}>
-            {a.routeShortName} → {a.headsign}
-          </Text>
-          <Text>
-            {fmtTime(a.liveTime ?? a.scheduledTime)} ·{' '}
-            {a.source === 'live' ? t('live') : t('scheduled')}
-          </Text>
+      <View style={styles.container}>
+        <View style={[shadows.card, styles.hero]}>
+          <Ionicons name="bus-outline" size={30} color={theme.primary} />
+          <View style={{ flex: 1 }}>
+            <Text style={type.h2}>{name}</Text>
+            <Text style={type.small}>{id}</Text>
+          </View>
         </View>
-      ))}
-      <Text style={styles.h}>
-        {t('reports')} ({reports?.length ?? 0})
-      </Text>
-      {reports?.length === 0 ? <Text>{t('noReports')}</Text> : null}
-      {reports?.map((r) => (
-        <Text key={r.id}>
-          {r.type} · {fmtDateTime(r.createdAt)}
-          {r.note ? ` — ${r.note}` : ''}
-        </Text>
-      ))}
-      <Text style={styles.h}>{t('reportIssue')}</Text>
-      <View style={styles.types}>
-        {TYPES.map((ty) => (
-          <Button
-            key={ty}
-            title={t(
-              ty === 'NOT_RUNNING'
-                ? 'reportNotRunning'
-                : ty === 'DIVERTED'
-                  ? 'reportDiverted'
-                  : ty === 'OVERCROWDED'
-                    ? 'reportCrowded'
-                    : 'reportOther',
-            )}
-            onPress={() => setRtype(ty)}
-            color={rtype === ty ? undefined : '#999'}
+        {lat != null && lon != null ? (
+          <UiButton
+            title={t('directionsToStop')}
+            variant="secondary"
+            onPress={() =>
+              void openStopDirections(Number(lat), Number(lon), name ?? t('stopTitle'))
+            }
+            icon={<Ionicons name="navigate-outline" size={18} color={theme.primaryDark} />}
           />
+        ) : null}
+        {error ? <Text>{error}</Text> : null}
+        <Text style={type.h2}>{t('departures')}</Text>
+        {arrivals == null ? <ActivityIndicator color={theme.primary} /> : null}
+        {arrivals?.length === 0 ? (
+          <EmptyState title={t('departures')} message={t('noDepartures')} icon="bus" />
+        ) : null}
+        {arrivals?.map((a, i) => (
+          <View key={`${a.scheduledTime}-${i}`} style={[shadows.card, styles.dep]}>
+            <View style={styles.depTop}>
+              <Text style={styles.bus}>
+                {a.routeShortName} → {a.headsign}
+              </Text>
+              <Text
+                style={[
+                  styles.src,
+                  { backgroundColor: a.source === 'live' ? theme.live : '#EDF0F3' },
+                  a.source === 'live' ? { color: '#fff' } : { color: theme.muted },
+                ]}
+              >
+                {a.source === 'live' ? t('live') : t('scheduled')}
+              </Text>
+            </View>
+            <Text style={styles.time}>{fmtTime(a.liveTime ?? a.scheduledTime)}</Text>
+          </View>
         ))}
+        <Text style={type.h2}>
+          {t('reports')} ({reports?.length ?? 0})
+        </Text>
+        {reports?.length === 0 ? <Text style={type.small}>{t('noReports')}</Text> : null}
+        {reports?.map((r) => (
+          <Text key={r.id} style={type.small}>
+            {r.type} · {fmtDateTime(r.createdAt)}
+            {r.note ? ` — ${r.note}` : ''}
+          </Text>
+        ))}
+        <Text style={type.h2}>{t('reportIssue')}</Text>
+        <View style={styles.types}>
+          {TYPES.map((ty) => (
+            <Pressable
+              key={ty}
+              style={[styles.chip, rtype === ty && styles.chipOn]}
+              onPress={() => setRtype(ty)}
+            >
+              <Text style={[styles.chipText, rtype === ty && styles.chipTextOn]}>
+                {t(
+                  ty === 'NOT_RUNNING'
+                    ? 'reportNotRunning'
+                    : ty === 'DIVERTED'
+                      ? 'reportDiverted'
+                      : ty === 'OVERCROWDED'
+                        ? 'reportCrowded'
+                        : 'reportOther',
+                )}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+        <TextInput
+          style={styles.input}
+          placeholder={t('reportNote')}
+          value={note}
+          onChangeText={setNote}
+          maxLength={280}
+        />
+        <UiButton title={t('reportSubmit')} onPress={() => void submit()} />
+        {sent ? <Text>{t('reportDone')}</Text> : null}
       </View>
-      <TextInput
-        style={styles.input}
-        placeholder={t('reportNote')}
-        value={note}
-        onChangeText={setNote}
-        maxLength={280}
-      />
-      <Button title={t('reportSubmit')} onPress={() => void submit()} />
-      {sent ? <Text>{t('reportDone')}</Text> : null}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 10, backgroundColor: theme.bg },
-  h: { fontSize: 16, fontWeight: '700', marginTop: 8, color: theme.text },
-  row: {
-    backgroundColor: theme.card,
-    borderColor: theme.border,
-    borderWidth: 1,
+  container: { padding: 16, gap: 10 },
+  hero: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+  dep: { padding: 12, gap: 4 },
+  depTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  bus: { fontWeight: '700', color: theme.text, flex: 1 },
+  src: {
+    fontWeight: '700',
+    fontSize: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     borderRadius: 10,
-    padding: 10,
-    gap: 2,
+    overflow: 'hidden',
   },
-  bus: { fontWeight: '600', color: theme.text },
-  input: { borderWidth: 1, borderRadius: 8, padding: 12 },
-  types: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
+  time: { fontSize: 17, fontWeight: '600', color: theme.text },
+  input: {
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 12,
+    padding: 12,
+    backgroundColor: '#fff',
+    fontSize: 15,
+  },
+  types: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: {
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    minHeight: 40,
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
+  chipOn: { backgroundColor: theme.primary, borderColor: theme.primary },
+  chipText: { color: theme.text, fontWeight: '600' },
+  chipTextOn: { color: '#fff' },
 });

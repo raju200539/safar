@@ -2,7 +2,6 @@ import { Link, Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Button,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,6 +11,7 @@ import {
 } from 'react-native';
 import * as Location from 'expo-location';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import {
   api,
   getBaseUrl,
@@ -24,8 +24,9 @@ import {
   swapEndpoints,
   type Endpoint,
 } from '../src/api/endpoints';
+import { UiButton } from '../src/ui/UiButton';
+import { shadows, theme, type } from '../src/ui/theme';
 import type { HealthStatus, Place } from '@hyd/shared';
-import { shadows, theme } from '../src/ui/theme';
 import '../src/i18n';
 
 function useStopSearch(query: string): Place[] {
@@ -110,11 +111,15 @@ export default function Home(): React.JSX.Element {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') return;
       const pos = await Location.getCurrentPositionAsync({});
-      choose(which, {
-        name: 'My location',
-        lat: pos.coords.latitude,
-        lon: pos.coords.longitude,
-      }, 'My location');
+      choose(
+        which,
+        {
+          name: 'My location',
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude,
+        },
+        'My location',
+      );
     } finally {
       setLocating(false);
     }
@@ -152,36 +157,60 @@ export default function Home(): React.JSX.Element {
     setText: (s: string) => void,
     results: Place[],
   ): React.JSX.Element => (
-    <View>
-      <TextInput
-        style={styles.input}
-        placeholder={t(which === 'from' ? 'fromPlaceholder' : 'toPlaceholder')}
-        value={text}
-        onChangeText={(s) => {
-          setText(s);
-          choose(which, null, s);
-        }}
-      />
+    <View style={styles.field}>
+      <View style={styles.inputRow}>
+        <Ionicons
+          name={which === 'from' ? 'locate-outline' : 'flag-outline'}
+          size={20}
+          color={theme.primary}
+        />
+        <TextInput
+          style={styles.input}
+          placeholder={t(which === 'from' ? 'fromPlaceholder' : 'toPlaceholder')}
+          value={text}
+          onChangeText={(s) => {
+            setText(s);
+            choose(which, null, s);
+          }}
+        />
+        {text.length > 0 ? (
+          <Pressable onPress={() => choose(which, null, '')} hitSlop={12}>
+            <Ionicons name="close-circle" size={20} color={theme.muted} />
+          </Pressable>
+        ) : null}
+      </View>
       {results.length > 0 ? (
-        <View>
+        <View style={styles.suggestBox}>
           {results.map((item) => (
             <Pressable
               key={item.stopId ?? item.name}
               style={styles.suggest}
               onPress={() =>
-                choose(which, { name: item.name, lat: item.lat, lon: item.lon }, item.name)
+                choose(
+                  which,
+                  { name: item.name, lat: item.lat, lon: item.lon },
+                  item.name,
+                )
               }
             >
-              <Text>{item.name}</Text>
+              <Ionicons name="bus-outline" size={18} color={theme.primary} />
+              <Text style={styles.suggestText}>{item.name}</Text>
             </Pressable>
           ))}
         </View>
       ) : null}
-      <View style={styles.row}>
-        <Button title={t('useLocation')} onPress={() => void useLocation(which)} />
-        <Button
+      <View style={styles.miniRow}>
+        <UiButton
+          title={t('useLocation')}
+          variant="secondary"
+          onPress={() => void useLocation(which)}
+          icon={<Ionicons name="navigate-outline" size={18} color={theme.primaryDark} />}
+        />
+        <UiButton
           title={t('pinDrop')}
+          variant="secondary"
           onPress={() => router.push({ pathname: '/pick', params: { target: which } })}
+          icon={<Ionicons name="map-outline" size={18} color={theme.primaryDark} />}
         />
       </View>
     </View>
@@ -190,67 +219,83 @@ export default function Home(): React.JSX.Element {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Stack.Screen options={{ title: t('appName') }} />
-      <Text style={styles.title}>{t('planTitle')}</Text>
+      <Text style={type.h1}>{t('planTitle')}</Text>
 
       <View style={[shadows.card, styles.block]}>
         {field('from', fromText, setFromText, fromResults)}
       </View>
-      <Button
-        title={t('swap')}
-        onPress={() => {
-          swapEndpoints();
-          const ep = getEndpoints();
-          setFrom(ep.from);
-          setTo(ep.to);
-          setFromText(ep.from?.name ?? '');
-          setToText(ep.to?.name ?? '');
-        }}
-      />
+      <View style={styles.swapRow}>
+        <Pressable
+          style={styles.swap}
+          onPress={() => {
+            swapEndpoints();
+            const ep = getEndpoints();
+            setFrom(ep.from);
+            setTo(ep.to);
+            setFromText(ep.from?.name ?? '');
+            setToText(ep.to?.name ?? '');
+          }}
+        >
+          <Ionicons name="swap-vertical" size={22} color="#fff" />
+        </Pressable>
+      </View>
       <View style={[shadows.card, styles.block]}>
         {field('to', toText, setToText, toResults)}
       </View>
 
-      {locating ? <ActivityIndicator /> : null}
-      <View style={styles.row}>
-        <Button
-          title={t(departMode === 'now' ? 'departNowOn' : 'departNow')}
-          onPress={() => setDepartMode('now')}
-        />
-        <Button
-          title={t('departAt')}
-          onPress={() => setDepartMode('at')}
-          color={departMode === 'at' ? undefined : '#999'}
-        />
-        {departMode === 'at' ? (
-          <View style={styles.row}>
-            <TextInput
-              style={[styles.input, styles.time]}
-              placeholder="HH"
-              value={hour}
-              onChangeText={setHour}
-              keyboardType="numeric"
-              maxLength={2}
-            />
-            <TextInput
-              style={[styles.input, styles.time]}
-              placeholder="MM"
-              value={minute}
-              onChangeText={setMinute}
-              keyboardType="numeric"
-              maxLength={2}
-            />
-          </View>
-        ) : null}
+      <View style={[shadows.card, styles.block]}>
+        <View style={styles.segRow}>
+          <Pressable
+            style={[styles.seg, departMode === 'now' && styles.segOn]}
+            onPress={() => setDepartMode('now')}
+          >
+            <Text style={[styles.segText, departMode === 'now' && styles.segTextOn]}>
+              {t('departNow')}
+            </Text>
+          </Pressable>
+          <Pressable
+            style={[styles.seg, departMode === 'at' && styles.segOn]}
+            onPress={() => setDepartMode('at')}
+          >
+            <Text style={[styles.segText, departMode === 'at' && styles.segTextOn]}>
+              {t('departAt')}
+            </Text>
+          </Pressable>
+          {departMode === 'at' ? (
+            <View style={styles.timeRow}>
+              <TextInput
+                style={[styles.input, styles.time]}
+                placeholder="HH"
+                value={hour}
+                onChangeText={setHour}
+                keyboardType="numeric"
+                maxLength={2}
+              />
+              <Text style={type.h2}>:</Text>
+              <TextInput
+                style={[styles.input, styles.time]}
+                placeholder="MM"
+                value={minute}
+                onChangeText={setMinute}
+                keyboardType="numeric"
+                maxLength={2}
+              />
+            </View>
+          ) : null}
+        </View>
       </View>
-      <Button
+
+      {locating ? <ActivityIndicator color={theme.primary} /> : null}
+      <UiButton
         title={t('search')}
         disabled={!canSearch}
         onPress={() => router.push({ pathname: '/results', params })}
+        icon={<Ionicons name="search-outline" size={20} color="#fff" />}
       />
 
       {recent.length > 0 ? (
-        <View>
-          <Text style={styles.sub}>{t('recent')}</Text>
+        <View style={[shadows.card, styles.block]}>
+          <Text style={type.h2}>{t('recent')}</Text>
           {recent.slice(0, 3).map((r) => (
             <Link
               key={String(r.at)}
@@ -266,7 +311,7 @@ export default function Home(): React.JSX.Element {
                 },
               }}
             >
-              <Text>
+              <Text style={styles.recentText}>
                 {r.fromName} → {r.toName}
               </Text>
             </Link>
@@ -283,20 +328,47 @@ export default function Home(): React.JSX.Element {
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, padding: 16, gap: 10, backgroundColor: theme.bg },
-  title: { fontSize: 24, fontWeight: '700', color: theme.text },
-  sub: { fontSize: 16, fontWeight: '600', marginTop: 8, color: theme.text },
-  block: { padding: 12, gap: 8 },
+  block: { padding: 14, gap: 10 },
+  field: { gap: 8 },
+  inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   input: {
+    flex: 1,
     borderWidth: 1,
     borderColor: theme.border,
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 12,
-    backgroundColor: '#fff',
+    backgroundColor: '#F8F9FA',
     fontSize: 16,
+    color: theme.text,
   },
-  suggest: { padding: 10, borderBottomWidth: 1, borderColor: theme.border },
-  row: { flexDirection: 'row', gap: 8 },
-  time: { width: 64 },
+  suggestBox: { gap: 2 },
+  suggest: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12 },
+  suggestText: { fontSize: 15, color: theme.text },
+  miniRow: { flexDirection: 'row', gap: 8 },
+  swapRow: { alignItems: 'flex-end', marginVertical: -4 },
+  swap: {
+    backgroundColor: theme.primary,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  seg: {
+    paddingHorizontal: 16,
+    minHeight: theme.tap,
+    borderRadius: 12,
+    backgroundColor: '#EDF0F3',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  segOn: { backgroundColor: theme.primary },
+  segText: { fontWeight: '700', color: theme.muted },
+  segTextOn: { color: '#fff' },
+  timeRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 'auto' },
+  time: { width: 60, textAlign: 'center' },
+  recentText: { fontSize: 15, color: theme.primaryDark, paddingVertical: 6 },
   health: { marginTop: 8, opacity: 0.6 },
   credit: { opacity: 0.5, fontSize: 12 },
 });

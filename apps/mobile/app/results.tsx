@@ -1,17 +1,13 @@
 import { Link, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import { ApiError, api, addRecentSearch } from '../src/api/client';
 import { putItinerary } from '../src/api/itinerary-store';
 import { fmtTime } from '../src/api/format';
-import { shadows, theme } from '../src/ui/theme';
+import { EmptyState } from '../src/ui/EmptyState';
+import { shadows, theme, type } from '../src/ui/theme';
 import type { Itinerary } from '@hyd/shared';
 import '../src/i18n';
 
@@ -90,18 +86,28 @@ export default function Results(): React.JSX.Element {
   return (
     <View style={styles.container}>
       <Stack.Screen options={{ title: t('resultsTitle') }} />
-      <Text style={styles.route}>
-        {p.fromName} → {p.toName}
-      </Text>
-      {state.kind === 'loading' ? <ActivityIndicator size="large" /> : null}
-      {state.kind === 'error' ? <Text>{state.message}</Text> : null}
+      <View style={styles.routeRow}>
+        <Ionicons name="locate-outline" size={18} color={theme.primary} />
+        <Text style={styles.route} numberOfLines={1}>
+          {p.fromName} → {p.toName}
+        </Text>
+      </View>
+      {state.kind === 'loading' ? (
+        <ActivityIndicator size="large" color={theme.primary} />
+      ) : null}
+      {state.kind === 'error' ? (
+        <EmptyState title={t('error')} message={state.message} icon="alert" />
+      ) : null}
       {state.kind === 'done' && state.items.length === 0 ? (
-        <Text>{t('noTrips')}</Text>
+        <EmptyState title={t('resultsTitle')} message={t('noTrips')} icon="bus" />
       ) : null}
       {state.kind === 'done' &&
       state.items.length > 0 &&
       state.items.every((it) => it.transfers >= 2) ? (
-        <Text style={styles.notice}>{t('limitedService')}</Text>
+        <View style={styles.noticeBox}>
+          <Ionicons name="time-outline" size={18} color={theme.warning} />
+          <Text style={styles.notice}>{t('limitedService')}</Text>
+        </View>
       ) : null}
       {state.kind === 'done'
         ? state.items.map((it) => {
@@ -109,17 +115,25 @@ export default function Results(): React.JSX.Element {
             const longWalk = it.walkDistanceM > 1500;
             return (
               <Link key={it.id} href={{ pathname: '/itinerary', params: { id } }} asChild>
-                <Pressable style={[styles.card, shadows.card]}>
-                  <Text style={styles.times}>
-                    {fmtTime(it.startTime)} – {fmtTime(it.endTime)}
-                  </Text>
-                  <Text style={styles.dur}>{fmtDur(it.durationSec)}</Text>
+                <Pressable style={[shadows.card, styles.card]}>
+                  <View style={styles.topRow}>
+                    <Text style={styles.times}>
+                      {fmtTime(it.startTime)} – {fmtTime(it.endTime)}
+                    </Text>
+                    <View style={styles.durPill}>
+                      <Text style={styles.dur}>{fmtDur(it.durationSec)}</Text>
+                    </View>
+                  </View>
                   <Text style={styles.stages}>{stageSummary(it, t('walk'))}</Text>
-                  <Text style={styles.meta}>
-                    {it.transfers} {it.transfers === 1 ? t('transfer') : t('transfers')} ·{' '}
-                    {Math.round(it.walkDistanceM)} m {t('walk')}
-                    {longWalk ? ` · ${t('longWalk')}` : ''}
-                  </Text>
+                  <View style={styles.metaRow}>
+                    <Ionicons name="git-compare-outline" size={14} color={theme.muted} />
+                    <Text style={styles.meta}>
+                      {it.transfers}{' '}
+                      {it.transfers === 1 ? t('transfer') : t('transfers')} ·{' '}
+                      {Math.round(it.walkDistanceM)} m {t('walk')}
+                      {longWalk ? ` · ${t('longWalk')}` : ''}
+                    </Text>
+                  </View>
                 </Pressable>
               </Link>
             );
@@ -131,11 +145,22 @@ export default function Results(): React.JSX.Element {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, gap: 12, backgroundColor: theme.bg },
-  route: { fontSize: 16, fontWeight: '600', color: theme.text },
-  notice: { opacity: 0.7, fontStyle: 'italic' },
-  card: { padding: 14, gap: 4 },
-  times: { fontSize: 19, fontWeight: '700', color: theme.text },
-  dur: { fontSize: 15, fontWeight: '600', color: theme.primary },
+  routeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  route: { fontSize: 16, fontWeight: '700', color: theme.text, flex: 1 },
+  noticeBox: {
+    flexDirection: 'row',
+    gap: 8,
+    backgroundColor: theme.warningBg,
+    borderRadius: 12,
+    padding: 12,
+  },
+  notice: { flex: 1, color: theme.text, fontStyle: 'italic' },
+  card: { padding: 16, gap: 6 },
+  topRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  times: { fontSize: 19, fontWeight: '800', color: theme.text, flex: 1 },
+  durPill: { backgroundColor: '#E7F2ED', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
+  dur: { fontSize: 14, fontWeight: '700', color: theme.primaryDark },
   stages: { fontSize: 14, color: theme.text },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   meta: { fontSize: 13, color: theme.muted },
 });

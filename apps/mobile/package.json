@@ -12,6 +12,7 @@
     "test": "jest --passWithNoTests"
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.1.1",
     "@hyd/shared": "workspace:*",
     "@mapbox/polyline": "^1.2.1",
     "@react-native-async-storage/async-storage": "2.2.0",
