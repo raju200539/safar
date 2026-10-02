@@ -1,15 +1,135 @@
-import { Stack } from 'expo-router';
-import { StyleSheet, Text, View } from 'react-native';
+import { Stack, useLocalSearchParams } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  Button,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import { useTranslation } from 'react-i18next';
+import { api, getDeviceId } from '../src/api/client';
+import type { Arrival, Report } from '@hyd/shared';
+import '../src/i18n';
+
+const TYPES = ['NOT_RUNNING', 'DIVERTED', 'OVERCROWDED', 'OTHER'] as const;
+
+function fmtTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString([], {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
 export default function Stop(): React.JSX.Element {
+  const { t } = useTranslation();
+  const { id, name } = useLocalSearchParams<{ id?: string; name?: string }>();
+  const [arrivals, setArrivals] = useState<Arrival[] | null>(null);
+  const [reports, setReports] = useState<Report[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [rtype, setRtype] = useState<string>('NOT_RUNNING');
+  const [note, setNote] = useState('');
+  const [sent, setSent] = useState(false);
+
+  const load = useCallback(() => {
+    if (!id) return;
+    setError(null);
+    Promise.all([api.arrivals(id), api.alerts(id)])
+      .then(([a, r]) => {
+        setArrivals(a);
+        setReports(r);
+      })
+      .catch(() => setError(t('error')));
+  }, [id, t]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const submit = async (): Promise<void> => {
+    if (!id) return;
+    try {
+      const deviceId = await getDeviceId();
+      await api.report(deviceId, {
+        type: rtype,
+        stopId: id,
+        note: note || undefined,
+      });
+      setSent(true);
+      setNote('');
+      load();
+    } catch {
+      setError(t('error'));
+    }
+  };
+
   return (
-    <View style={styles.container}>
-      <Stack.Screen options={{ title: 'Stop' }} />
-      <Text>Stop detail lands in M4.</Text>
-    </View>
+    <ScrollView contentContainerStyle={styles.container}>
+      <Stack.Screen options={{ title: name ?? t('stopTitle') }} />
+      {error ? <Text>{error}</Text> : null}
+      <Text style={styles.h}>{t('departures')}</Text>
+      {arrivals == null ? <ActivityIndicator /> : null}
+      {arrivals?.length === 0 ? <Text>{t('noDepartures')}</Text> : null}
+      {arrivals?.map((a, i) => (
+        <View key={`${a.scheduledTime}-${i}`} style={styles.row}>
+          <Text style={styles.bus}>
+            {a.routeShortName} → {a.headsign}
+          </Text>
+          <Text>
+            {fmtTime(a.liveTime ?? a.scheduledTime)} ·{' '}
+            {a.source === 'live' ? t('live') : t('scheduled')}
+          </Text>
+        </View>
+      ))}
+      <Text style={styles.h}>
+        {t('reports')} ({reports?.length ?? 0})
+      </Text>
+      {reports?.length === 0 ? <Text>{t('noReports')}</Text> : null}
+      {reports?.map((r) => (
+        <Text key={r.id}>
+          {r.type} · {new Date(r.createdAt).toLocaleString()}
+          {r.note ? ` — ${r.note}` : ''}
+        </Text>
+      ))}
+      <Text style={styles.h}>{t('reportIssue')}</Text>
+      <View style={styles.types}>
+        {TYPES.map((ty) => (
+          <Button
+            key={ty}
+            title={t(
+              ty === 'NOT_RUNNING'
+                ? 'reportNotRunning'
+                : ty === 'DIVERTED'
+                  ? 'reportDiverted'
+                  : ty === 'OVERCROWDED'
+                    ? 'reportCrowded'
+                    : 'reportOther',
+            )}
+            onPress={() => setRtype(ty)}
+            color={rtype === ty ? undefined : '#999'}
+          />
+        ))}
+      </View>
+      <TextInput
+        style={styles.input}
+        placeholder={t('reportNote')}
+        value={note}
+        onChangeText={setNote}
+        maxLength={280}
+      />
+      <Button title={t('reportSubmit')} onPress={() => void submit()} />
+      {sent ? <Text>{t('reportDone')}</Text> : null}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
+  container: { padding: 16, gap: 10 },
+  h: { fontSize: 16, fontWeight: '700', marginTop: 8 },
+  row: { borderBottomWidth: 1, paddingVertical: 8, gap: 2 },
+  bus: { fontWeight: '600' },
+  input: { borderWidth: 1, borderRadius: 8, padding: 12 },
+  types: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
 });
