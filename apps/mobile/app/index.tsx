@@ -31,7 +31,10 @@ import { animateLayout } from '../src/ui/anim';
 import type { HealthStatus, Place } from '@hyd/shared';
 import '../src/i18n';
 
-function usePlaceSearch(query: string): Place[] {
+function usePlaceSearch(
+  query: string,
+  near?: { latitude: number; longitude: number } | null,
+): Place[] {
   const [results, setResults] = useState<Place[]>([]);
   useEffect(() => {
     if (query.trim().length < 2) {
@@ -43,10 +46,20 @@ function usePlaceSearch(query: string): Place[] {
       api
         .searchPlaces(query.trim())
         .then((r) => {
-          if (live) {
-            animateLayout();
-            setResults(r.slice(0, 8));
-          }
+          if (!live) return;
+          const sorted = [...r].sort((a, b) => {
+            // Stops first, then nearest-first so suggestions feel local.
+            if ((a.kind ?? 'stop') !== (b.kind ?? 'stop')) {
+              return (a.kind ?? 'stop') === 'stop' ? -1 : 1;
+            }
+            if (!near) return 0;
+            return (
+              haversineM(near.latitude, near.longitude, a.lat, a.lon) -
+              haversineM(near.latitude, near.longitude, b.lat, b.lon)
+            );
+          });
+          animateLayout();
+          setResults(sorted.slice(0, 8));
         })
         .catch(() => {
           if (live) setResults([]);
@@ -56,8 +69,17 @@ function usePlaceSearch(query: string): Place[] {
       live = false;
       clearTimeout(t);
     };
-  }, [query]);
+  }, [query, near?.latitude, near?.longitude]);
   return results;
+}
+
+function haversineM(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const r = 6371000;
+  const toRad = (d: number): number => (d * Math.PI) / 180;
+  const a =
+    Math.sin(toRad(lat2 - lat1) / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(toRad(lon2 - lon1) / 2) ** 2;
+  return 2 * r * Math.asin(Math.sqrt(a));
 }
 
 export default function Home(): React.JSX.Element {
@@ -74,7 +96,7 @@ export default function Home(): React.JSX.Element {
   const [departMode, setDepartMode] = useState<'now' | 'at'>('now');
   const [atTime, setAtTime] = useState<Date | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const destResults = usePlaceSearch(to && destQuery === to.name ? '' : destQuery);
+  const destResults = usePlaceSearch(to && destQuery === to.name ? '' : destQuery, userLoc);
 
   // Start = current location, preselected like Uber/Rapido.
   useEffect(() => {
