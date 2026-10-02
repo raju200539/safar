@@ -71,7 +71,7 @@ Ticketing or payments; user accounts or login; offline mode; push notifications;
 - **Live data source is undocumented.** Gamyam's endpoints may be private, may change, or may not cover ordinary city buses. v1 must work fully without live data.
 - **Timetable accuracy.** GTFS schedules may not match actual bus behaviour. Always label scheduled vs live.
 - **Competition.** Google Maps already shows Metro timings and TGSRTC bus real-time updates were announced as coming; verify current Google Maps coverage on a few routes before positioning the product. Differentiation is the experience (boarding instructions, simplicity, Telugu), not data exclusivity.
-- **Licensing.** Check license terms of the TGSRTC and HMRL GTFS feeds before public release.
+- **Licensing.** TGSRTC Open Data terms allow commercial and non-commercial use with attribution ("Contains data provided by TGSRTC", shown in-app); do not claim endorsement. HMRL feed via OpenCity is public domain. Terms: `https://tgsrtc.telangana.gov.in/open-data`.
 - **Hosting.** OpenTripPlanner needs a few GB of RAM; it will not run on typical free hosting tiers.
 
 ---

@@ -30,6 +30,7 @@
   "reportSubmit": "Submit report",
   "reportDone": "Thanks — your report is visible to other riders.",
   "error": "Something went wrong. Check your connection and try again.",
+  "dataCredit": "Bus data: contains data provided by TGSRTC. Metro data: HMRL via OpenCity.",
   "stopTitle": "Stop",
   "m0note": "Bus + Metro planner for Hyderabad."
 }

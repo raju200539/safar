@@ -223,6 +223,7 @@ export default function Home(): React.JSX.Element {
       <Text style={styles.health}>
         API: {health} ({getBaseUrl()})
       </Text>
+      <Text style={styles.credit}>{t('dataCredit')}</Text>
     </ScrollView>
   );
 }
@@ -235,4 +236,5 @@ const styles = StyleSheet.create({
   suggest: { padding: 10, borderBottomWidth: 1 },
   row: { flexDirection: 'row', gap: 8 },
   health: { marginTop: 8, opacity: 0.6 },
+  credit: { opacity: 0.5, fontSize: 12 },
 });
