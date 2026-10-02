@@ -26,6 +26,18 @@ function fmtDur(sec: number): string {
   return `${Math.floor(m / 60)}h ${m % 60}m`;
 }
 
+function stageSummary(it: Itinerary, walkLabel: string): string {
+  return it.legs
+    .map((l) => {
+      if (l.mode === 'WALK') {
+        const m = Math.round(l.distanceM ?? 0);
+        return `🚶 ${m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${m} m`} ${walkLabel}`;
+      }
+      return `${l.mode === 'BUS' ? '🚌' : '🚇'} ${l.route?.shortName ?? ''}`;
+    })
+    .join('  →  ');
+}
+
 export default function Results(): React.JSX.Element {
   const { t } = useTranslation();
   const p = useLocalSearchParams<{
@@ -105,11 +117,8 @@ export default function Results(): React.JSX.Element {
                     {Math.round(it.walkDistanceM)} m {t('walk')}
                     {longWalk ? ` · ${t('longWalk')}` : ''}
                   </Text>
-                  <Text numberOfLines={2} style={styles.legs}>
-                    {it.legs
-                      .filter((l) => l.mode !== 'WALK')
-                      .map((l) => `${l.mode === 'BUS' ? '🚌' : '🚇'} ${l.route?.shortName ?? ''}`)
-                      .join('  →  ')}
+                  <Text numberOfLines={3} style={styles.legs}>
+                    {stageSummary(it, t('walk'))}
                   </Text>
                 </Pressable>
               </Link>

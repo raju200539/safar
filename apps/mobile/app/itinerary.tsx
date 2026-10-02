@@ -33,6 +33,12 @@ export default function ItineraryDetail(): React.JSX.Element {
             {leg.mode === 'WALK' ? '🚶' : leg.mode === 'BUS' ? '🚌' : '🚇'} {leg.mode}
             {leg.live ? ` · ${t('live')}` : ''}
           </Text>
+          <Text style={styles.meta}>
+            {leg.mode === 'WALK' && leg.distanceM != null
+              ? `${Math.round(leg.distanceM)} m · `
+              : ''}
+            {Math.max(1, Math.round(leg.durationSec / 60))} min
+          </Text>
           <Text>{leg.instruction}</Text>
           {leg.intermediateStops && leg.intermediateStops.length > 0 ? (
             <Text style={styles.stops}>
@@ -49,5 +55,6 @@ const styles = StyleSheet.create({
   container: { padding: 16, gap: 12 },
   leg: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 4 },
   mode: { fontWeight: '700' },
+  meta: { opacity: 0.6 },
   stops: { opacity: 0.7 },
 });
