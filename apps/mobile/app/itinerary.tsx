@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { Itinerary, Leg } from '@hyd/shared';
 import { getItinerary, getLastSearch } from '../src/api/itinerary-store';
+import { buildSteps } from '../src/api/steps';
 import { fmtTime } from '../src/api/format';
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
@@ -119,6 +120,7 @@ export default function ItineraryDetail(): React.JSX.Element {
       ) : null}
       {trip.legs.map((leg, i) => {
         const last = i === trip.legs.length - 1;
+        const st = buildSteps(leg, (k, v) => t(k, v));
         return (
           <View key={`${trip.id}-${i}`} style={styles.row}>
             <View style={styles.rail}>
@@ -137,7 +139,13 @@ export default function ItineraryDetail(): React.JSX.Element {
                 </Text>
                 {leg.live ? <Text style={styles.live}>· {t('live')}</Text> : null}
               </View>
-              <Text style={styles.instruction}>{leg.instruction}</Text>
+              <Text style={styles.instruction}>{st.title}</Text>
+              {st.steps.map((s, si) => (
+                <View key={si} style={styles.stepRow}>
+                  <Text style={styles.stepNum}>{si + 1}</Text>
+                  <Text style={styles.stepText}>{s}</Text>
+                </View>
+              ))}
               <Text style={styles.meta}>
                 {leg.mode === 'WALK' && leg.distanceM != null
                   ? `${Math.round(leg.distanceM)} m · `
@@ -228,7 +236,19 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   live: { color: theme.live, fontWeight: '700' },
-  instruction: { fontSize: 15, color: theme.text },
+  instruction: { fontSize: 16, fontWeight: '700', color: theme.text },
+  stepRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
+  stepNum: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: theme.primary,
+    color: '#fff',
+    textAlign: 'center',
+    fontWeight: '700',
+    overflow: 'hidden',
+  },
+  stepText: { flex: 1, fontSize: 15, color: theme.text },
   meta: { color: theme.muted },
   times: { fontSize: 16, fontWeight: '700', color: theme.primaryDark },
   tagRow: { flexDirection: 'row', gap: 8 },
