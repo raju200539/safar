@@ -14,8 +14,10 @@ build/
 # Data (never commit downloaded feeds)
 data/gtfs/
 data/osm/
+data/tmp-*/
 data/otp/graph.obj
 data/otp/*.obj
+hmrl-debug.log
 
 # Postgres / Docker volumes
 pgdata/
