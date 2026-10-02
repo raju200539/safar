@@ -6,6 +6,9 @@ import te from './te.json';
 void i18n.use(initReactI18next).init({
   lng: 'en',
   fallbackLng: 'en',
+  // Hermes on Android lacks Intl.PluralRules; v3 format avoids needing it
+  // (we don't use plural features).
+  compatibilityJSON: 'v3',
   resources: { en: { translation: en }, te: { translation: te } },
 });
 
