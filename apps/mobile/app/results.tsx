@@ -31,7 +31,8 @@ function legIcon(mode: string): string {
   return '🚶';
 }
 
-/** Visual strip: one segment per stage, width ∝ duration. */
+/** Visual strip: one segment per stage, width ∝ duration. Transit
+ * segments carry the route number so riders see which bus/metro. */
 function StageStrip({ legs }: { legs: Itinerary['legs'] }): React.JSX.Element {
   const total = Math.max(
     1,
@@ -39,22 +40,29 @@ function StageStrip({ legs }: { legs: Itinerary['legs'] }): React.JSX.Element {
   );
   return (
     <View style={stripStyles.strip}>
-      {legs.map((l, i) => (
-        <View
-          key={i}
-          style={{
-            flexGrow: Math.max(1, l.durationSec),
-            flexBasis: 0,
-            height: 26,
-            backgroundColor: l.mode === 'WALK' ? '#EDF0F3' : legColor(l.mode),
-            borderRadius: 8,
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Text style={stripStyles.glyph}>{legIcon(l.mode)}</Text>
-        </View>
-      ))}
+      {legs.map((l, i) => {
+        const label = l.mode === 'WALK' ? '' : (l.route?.shortName ?? '');
+        return (
+          <View
+            key={i}
+            style={{
+              flexGrow: Math.max(1, l.durationSec),
+              flexBasis: 0,
+              minHeight: 30,
+              backgroundColor: l.mode === 'WALK' ? '#EDF0F3' : legColor(l.mode),
+              borderRadius: 8,
+              alignItems: 'center',
+              justifyContent: 'center',
+              paddingHorizontal: 2,
+            }}
+          >
+            <Text style={l.mode === 'WALK' ? stripStyles.walkGlyph : stripStyles.glyph} numberOfLines={1}>
+              {legIcon(l.mode)}
+              {label ? ` ${label}` : ''}
+            </Text>
+          </View>
+        );
+      })}
       <Text style={stripStyles.total}>
         {Math.round(total / 60)} min
       </Text>
@@ -64,7 +72,8 @@ function StageStrip({ legs }: { legs: Itinerary['legs'] }): React.JSX.Element {
 
 const stripStyles = StyleSheet.create({
   strip: { flexDirection: 'row', gap: 3, alignItems: 'center' },
-  glyph: { fontSize: 13 },
+  glyph: { fontSize: 12, fontWeight: '700', color: '#fff' },
+  walkGlyph: { fontSize: 13 },
   total: { fontSize: 12, color: theme.muted, marginLeft: 4 },
 });
 
