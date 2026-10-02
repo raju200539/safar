@@ -142,7 +142,7 @@ export default function ItineraryDetail(): React.JSX.Element {
               <Text style={styles.instruction}>{st.title}</Text>
               {st.steps.map((s, si) => (
                 <View key={si} style={styles.stepRow}>
-                  <Text style={styles.stepNum}>{si + 1}</Text>
+                  <Text style={styles.bullet}>•</Text>
                   <Text style={styles.stepText}>{s}</Text>
                 </View>
               ))}
@@ -238,16 +238,7 @@ const styles = StyleSheet.create({
   live: { color: theme.live, fontWeight: '700' },
   instruction: { fontSize: 16, fontWeight: '700', color: theme.text },
   stepRow: { flexDirection: 'row', gap: 8, alignItems: 'flex-start' },
-  stepNum: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: theme.primary,
-    color: '#fff',
-    textAlign: 'center',
-    fontWeight: '700',
-    overflow: 'hidden',
-  },
+  bullet: { fontSize: 18, lineHeight: 22, color: theme.primary, fontWeight: '900' },
   stepText: { flex: 1, fontSize: 15, color: theme.text },
   meta: { color: theme.muted },
   times: { fontSize: 16, fontWeight: '700', color: theme.primaryDark },
