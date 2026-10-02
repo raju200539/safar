@@ -312,6 +312,7 @@ export interface OtpStopNode {
   name?: string | null;
   lat?: number | null;
   lon?: number | null;
+  vehicleMode?: string | null;
 }
 
 export function mapStop(s: OtpStopNode): Place | null {

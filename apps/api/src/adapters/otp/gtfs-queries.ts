@@ -9,6 +9,7 @@ export const PLAN_QUERY = /* GraphQL */ `
     $dateTime: PlanDateTimeInput
     $modes: PlanModesInput
     $first: Int
+    $via: [PlanViaLocationInput!]
   ) {
     planConnection(
       origin: $origin
@@ -16,6 +17,7 @@ export const PLAN_QUERY = /* GraphQL */ `
       dateTime: $dateTime
       modes: $modes
       first: $first
+      via: $via
     ) {
       edges {
         node {
@@ -116,6 +118,7 @@ export const STOPS_BY_RADIUS_QUERY = /* GraphQL */ `
             name
             lat
             lon
+            vehicleMode
           }
         }
       }
