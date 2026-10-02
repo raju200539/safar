@@ -52,6 +52,17 @@ with plain-language boarding instructions. See `docs/SPEC.md`.
 
 Errors always look like `{ "error": { "code": "...", "message": "..." } }`.
 
+## Data licensing (verified Oct 2026)
+
+- TGSRTC GTFS is published under TGSRTC's Open Data terms
+  (https://tgsrtc.telangana.gov.in/open-data): free for commercial and
+  non-commercial use, with mandatory attribution
+  "Contains data provided by TGSRTC" (shown in-app) and no claim of
+  endorsement. Data is AS-IS; TGSRTC may update or discontinue it.
+- HMRL GTFS via OpenCity (Govt. of Telangana), public domain.
+- Fresher TGSRTC GTFS is gated behind a request form on the same page —
+  file a request if the bundled feed's times prove too stale.
+
 ## Milestones
 
 Work one milestone at a time — see `docs/SPEC.md` §3.2. Live departures (M6)
