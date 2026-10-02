@@ -1,15 +1,25 @@
 # Gamyam findings (M6 gate)
 
-> BLOCKED: M6 must not start until this file documents real, observed
-> Gamyam app behaviour. Written by the human, not the agent.
+Date: 2026-10-02. Inspected by the human via HTTP Toolkit traffic interception.
 
-To fill in:
+## Outcome: endpoints not obtainable — app uses certificate pinning
 
-- App version inspected, date, device
-- Endpoints observed (host, path, method)
-- Request/response shapes (redact auth tokens)
-- Which bus types return live data (Pushpak / Express / ordinary city?)
-- Polling interval, rate limits, licence/ToS notes
+- With interception active, the Gamyam app fails to load data and throws errors.
+- Intercept log shows `Certificate rejected` for its backend/map connections
+  (including `outpost.mapmyindia.com`, `sdkconfig.mappls.com` — maps come from
+  Mappls/MapMyIndia SDK) and `Aborted connection` elsewhere.
+- No Gamyam API host, path, or request/response shape could be observed.
 
-Until this exists, `LIVE_ENABLED` stays `false` and the app labels
-everything "scheduled".
+## Decision
+
+Per project rules (AGENTS.md: do not attempt to bypass authentication,
+certificate pinning, or any access control on a third-party service), no
+bypass will be attempted. M6 stays blocked until and unless a legitimate,
+documented live source appears. The app correctly labels everything
+`scheduled` in the meantime.
+
+## Legitimate alternatives (not yet pursued)
+
+1. Official TGSRTC developer API or GTFS-RT feed, if one is published.
+2. Open-data request to TGSRTC / OpenCity for a realtime feed.
+3. Ship v1 timetable-only (current state).
