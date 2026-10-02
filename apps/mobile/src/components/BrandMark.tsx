@@ -1,8 +1,47 @@
-import Svg, { Circle, G, Line, Rect } from 'react-native-svg';
+import SvgRaw, {
+  Circle as CircleRaw,
+  G as GRaw,
+  Line as LineRaw,
+  Rect as RectRaw,
+} from 'react-native-svg';
 
 const TEAL = '#0B6E4F';
 const WHITE = '#FFFFFF';
 const PURPLE = '#7B2CBF';
+
+// react-native-svg ships class-component typings that TS rejects as JSX
+// under React 19 types (same as react-native-maps). Cast once here.
+const Svg = SvgRaw as unknown as React.FC<{
+  width?: number;
+  height?: number;
+  viewBox?: string;
+  children?: React.ReactNode;
+}>;
+const Rect = RectRaw as unknown as React.FC<{
+  x?: number;
+  y?: number;
+  width?: number | string;
+  height?: number | string;
+  rx?: number;
+  fill?: string;
+}>;
+const Circle = CircleRaw as unknown as React.FC<{
+  cx?: number;
+  cy?: number;
+  r?: number;
+  fill?: string;
+}>;
+const Line = LineRaw as unknown as React.FC<{
+  x1?: number;
+  y1?: number;
+  x2?: number;
+  y2?: number;
+  stroke?: string;
+  strokeWidth?: number;
+  strokeLinecap?: string;
+  strokeDasharray?: string;
+}>;
+const G = GRaw as unknown as React.FC<{ fill?: string; children?: React.ReactNode }>;
 
 /** Safar brand mark: bus + metro on a shared route line. Any size. */
 export function BrandMark({ size = 120 }: { size?: number }): React.JSX.Element {
