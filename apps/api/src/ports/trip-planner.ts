@@ -6,5 +6,6 @@ export interface TripPlanner {
     to: LatLon;
     when?: Date;
     arriveBy?: boolean;
+    modes?: 'all' | 'bus' | 'metro';
   }): Promise<Itinerary[]>;
 }

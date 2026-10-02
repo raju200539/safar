@@ -57,8 +57,25 @@ describe('OtpPlanner fan-out', () => {
     expect(modes).toEqual(['BUS', 'BUS', 'METRO']);
   });
 
-  it('tolerates a failing sub-search', async () => {
-    let calls = 0;
+  it('runs a single search when a mode family is requested', async () => {
+    const seen: unknown[] = [];
+    const client = {
+      query: async (_q: string, v: unknown): Promise<unknown> => {
+        seen.push((v as { modes?: unknown }).modes);
+        return { planConnection: { edges: [] } };
+      },
+    } as unknown as OtpClient;
+    await new OtpPlanner(client).plan({
+      from: { lat: 17.3, lon: 78.4 },
+      to: { lat: 17.4, lon: 78.5 },
+      modes: 'metro',
+    });
+    expect(seen).toHaveLength(1);
+    expect(JSON.stringify(seen[0])).toContain('SUBWAY');
+    expect(JSON.stringify(seen[0])).not.toContain('BUS');
+  });
+
+  it('tolerates a failing sub-search', async () => {    let calls = 0;
     const client = {
       query: async (): Promise<unknown> => {
         calls += 1;

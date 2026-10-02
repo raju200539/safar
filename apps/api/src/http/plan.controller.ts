@@ -24,6 +24,7 @@ export class PlanController {
         to: { lat: q.toLat, lon: q.toLon },
         when: q.when ? new Date(q.when) : undefined,
         arriveBy: q.arriveBy,
+        modes: q.modes,
       });
     } catch (err) {
       const coded = err as { code?: string; status?: number; message?: string };

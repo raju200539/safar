@@ -6,6 +6,7 @@ export interface PlanQuery {
   to: LatLon;
   when?: Date;
   arriveBy?: boolean;
+  modes?: 'all' | 'bus' | 'metro';
 }
 
 export const MAX_ITINERARIES = 3;

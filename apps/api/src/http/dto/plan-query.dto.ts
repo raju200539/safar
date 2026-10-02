@@ -1,6 +1,7 @@
 import { Type } from 'class-transformer';
 import {
   IsBoolean,
+  IsIn,
   IsISO8601,
   IsNumber,
   IsOptional,
@@ -43,4 +44,8 @@ export class PlanQueryDto {
   @Type(() => Boolean)
   @IsBoolean()
   arriveBy?: boolean;
+
+  @IsOptional()
+  @IsIn(['all', 'bus', 'metro'])
+  modes?: 'all' | 'bus' | 'metro';
 }

@@ -28,9 +28,8 @@ export class OtpPlanner implements TripPlanner {
   constructor(private readonly client: OtpClient = new OtpClient()) {}
 
   /**
-   * Fans out to three searches (all transit, bus-only, metro-only) so the
-   * rider gets genuinely different ways to go, not the same trip thrice.
-   * PlanTrip dedupes + ranks the merged list.
+   * One search per requested family so the rider gets genuinely different
+   * ways to go, not the same trip thrice. PlanTrip dedupes + ranks.
    */
   async plan(q: PlanQuery): Promise<Itinerary[]> {
     const when = q.when ?? new Date();
@@ -49,11 +48,20 @@ export class OtpPlanner implements TripPlanner {
       dateTime: toOtpDateTime(when, arriveBy),
       first: PLANNER_REQUEST_COUNT,
     };
-    const results = await Promise.all([
-      this.search({ ...base, modes: { transit: { transit: ALL_MODES } } }),
-      this.search({ ...base, modes: { transit: { transit: BUS_MODES } } }),
-      this.search({ ...base, modes: { transit: { transit: METRO_MODES } } }),
-    ]);
+    const family = q.modes ?? 'all';
+    const searches =
+      family === 'bus'
+        ? [{ ...base, modes: { transit: { transit: BUS_MODES } } }]
+        : family === 'metro'
+          ? [{ ...base, modes: { transit: { transit: METRO_MODES } } }]
+          : [
+              { ...base, modes: { transit: { transit: ALL_MODES } } },
+              { ...base, modes: { transit: { transit: BUS_MODES } } },
+              { ...base, modes: { transit: { transit: METRO_MODES } } },
+            ];
+    const results = await Promise.all(
+      searches.map((variables) => this.search(variables)),
+    );
     const merged = results.flat();
     return merged.slice(0, MAX_ITINERARIES * 2);
   }

@@ -44,6 +44,7 @@ export default function Results(): React.JSX.Element {
     | { kind: 'error'; message: string }
     | { kind: 'done'; items: Itinerary[] }
   >({ kind: 'loading' });
+  const [modeFilter, setModeFilter] = useState<'all' | 'bus' | 'metro'>('all');
 
   const refTime = p.when ? new Date(p.when) : new Date();
   const refHour = refTime.getHours();
@@ -55,12 +56,13 @@ export default function Results(): React.JSX.Element {
 
   useEffect(() => {
     let live = true;
+    setState({ kind: 'loading' });
     const fromLat = Number(p.fromLat);
     const fromLon = Number(p.fromLon);
     const toLat = Number(p.toLat);
     const toLon = Number(p.toLon);
     api
-      .plan({ fromLat, fromLon, toLat, toLon, when: p.when })
+      .plan({ fromLat, fromLon, toLat, toLon, when: p.when, modes: modeFilter })
       .then((items) => {
         if (!live) return;
         setState({ kind: 'done', items });
@@ -87,8 +89,7 @@ export default function Results(): React.JSX.Element {
     return () => {
       live = false;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [modeFilter]);
 
   return (
     <View style={styles.container}>
@@ -107,6 +108,19 @@ export default function Results(): React.JSX.Element {
           </Text>
         </View>
       ) : null}
+      <View style={styles.chipRow}>
+        {(['all', 'bus', 'metro'] as const).map((m) => (
+          <Pressable
+            key={m}
+            style={modeFilter === m ? styles.chipOn : styles.chipOff}
+            onPress={() => setModeFilter(m)}
+          >
+            <Text style={modeFilter === m ? styles.chipTextOn : styles.chipTextOff}>
+              {t(m === 'all' ? 'modeAll' : m === 'bus' ? 'modeBus' : 'modeMetro')}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
       {state.kind === 'loading' ? (
         <ActivityIndicator size="large" color={theme.primary} />
       ) : null}
@@ -196,4 +210,25 @@ const styles = StyleSheet.create({
   co2: { fontSize: 13, fontWeight: '600', color: theme.live },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   meta: { fontSize: 13, color: theme.muted },
+  chipRow: { flexDirection: 'row', gap: 8 },
+  chipOff: {
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    minHeight: 40,
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+  },
+  chipOn: {
+    borderWidth: 1,
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    minHeight: 40,
+    justifyContent: 'center',
+    backgroundColor: theme.primary,
+    borderColor: theme.primary,
+  },
+  chipTextOff: { color: theme.text, fontWeight: '700' },
+  chipTextOn: { color: '#fff', fontWeight: '700' },
 });
