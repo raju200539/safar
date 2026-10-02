@@ -93,7 +93,7 @@ export default function Results(): React.JSX.Element {
     return () => {
       live = false;
     };
-  }, [modeFilter]);
+  }, [modeFilter, p.fromLat, p.fromLon, p.toLat, p.toLon, p.when]);
 
   return (
     <View style={styles.container}>
