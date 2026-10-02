@@ -64,6 +64,9 @@ export default function Home(): React.JSX.Element {
   const [to, setTo] = useState<Endpoint | null>(null);
   const [locating, setLocating] = useState(false);
   const [recent, setRecent] = useState<RecentSearch[]>([]);
+  const [departMode, setDepartMode] = useState<'now' | 'at'>('now');
+  const [hour, setHour] = useState('');
+  const [minute, setMinute] = useState('');
   const fromResults = useStopSearch(from && fromText === from.name ? '' : fromText);
   const toResults = useStopSearch(to && toText === to.name ? '' : toText);
 
@@ -118,6 +121,21 @@ export default function Home(): React.JSX.Element {
   };
 
   const canSearch = from != null && to != null;
+
+  // "Depart at HH:MM": today if still ahead, else tomorrow (device timezone).
+  const chosenWhen = (): string | undefined => {
+    if (departMode === 'now') return undefined;
+    const h = Number(hour);
+    const m = Number(minute);
+    if (!Number.isInteger(h) || !Number.isInteger(m) || h < 0 || h > 23 || m < 0 || m > 59) {
+      return undefined;
+    }
+    const d = new Date();
+    d.setHours(h, m, 0, 0);
+    if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 1);
+    return d.toISOString();
+  };
+
   const params = {
     fromName: from?.name ?? '',
     fromLat: String(from?.lat ?? ''),
@@ -125,6 +143,7 @@ export default function Home(): React.JSX.Element {
     toName: to?.name ?? '',
     toLat: String(to?.lat ?? ''),
     toLon: String(to?.lon ?? ''),
+    ...(chosenWhen() ? { when: chosenWhen() as string } : {}),
   };
 
   const field = (
@@ -189,6 +208,37 @@ export default function Home(): React.JSX.Element {
       {field('to', toText, setToText, toResults)}
 
       {locating ? <ActivityIndicator /> : null}
+      <View style={styles.row}>
+        <Button
+          title={t(departMode === 'now' ? 'departNowOn' : 'departNow')}
+          onPress={() => setDepartMode('now')}
+        />
+        <Button
+          title={t('departAt')}
+          onPress={() => setDepartMode('at')}
+          color={departMode === 'at' ? undefined : '#999'}
+        />
+        {departMode === 'at' ? (
+          <View style={styles.row}>
+            <TextInput
+              style={[styles.input, styles.time]}
+              placeholder="HH"
+              value={hour}
+              onChangeText={setHour}
+              keyboardType="numeric"
+              maxLength={2}
+            />
+            <TextInput
+              style={[styles.input, styles.time]}
+              placeholder="MM"
+              value={minute}
+              onChangeText={setMinute}
+              keyboardType="numeric"
+              maxLength={2}
+            />
+          </View>
+        ) : null}
+      </View>
       <Button
         title={t('search')}
         disabled={!canSearch}
@@ -235,6 +285,7 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderRadius: 8, padding: 12 },
   suggest: { padding: 10, borderBottomWidth: 1 },
   row: { flexDirection: 'row', gap: 8 },
+  time: { width: 64 },
   health: { marginTop: 8, opacity: 0.6 },
   credit: { opacity: 0.5, fontSize: 12 },
 });

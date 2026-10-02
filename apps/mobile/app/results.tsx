@@ -47,6 +47,7 @@ export default function Results(): React.JSX.Element {
     toName?: string;
     toLat?: string;
     toLon?: string;
+    when?: string;
   }>();
   const [state, setState] = useState<
     | { kind: 'loading' }
@@ -61,7 +62,7 @@ export default function Results(): React.JSX.Element {
     const toLat = Number(p.toLat);
     const toLon = Number(p.toLon);
     api
-      .plan({ fromLat, fromLon, toLat, toLon })
+      .plan({ fromLat, fromLon, toLat, toLon, when: p.when })
       .then((items) => {
         if (!live) return;
         setState({ kind: 'done', items });
@@ -102,6 +103,11 @@ export default function Results(): React.JSX.Element {
       {state.kind === 'done' && state.items.length === 0 ? (
         <Text>{t('noTrips')}</Text>
       ) : null}
+      {state.kind === 'done' &&
+      state.items.length > 0 &&
+      state.items.every((it) => it.transfers >= 2) ? (
+        <Text style={styles.notice}>{t('limitedService')}</Text>
+      ) : null}
       {state.kind === 'done'
         ? state.items.map((it) => {
             const id = putItinerary(it);
@@ -132,6 +138,7 @@ export default function Results(): React.JSX.Element {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, gap: 12 },
   route: { fontSize: 16, fontWeight: '600' },
+  notice: { opacity: 0.7, fontStyle: 'italic' },
   card: { borderWidth: 1, borderRadius: 12, padding: 12, gap: 4 },
   times: { fontSize: 17, fontWeight: '700' },
   legs: { opacity: 0.8 },
