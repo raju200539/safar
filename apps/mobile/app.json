@@ -1,0 +1,15 @@
+{
+  "expo": {
+    "name": "Hyd Transit",
+    "slug": "hyd-transit",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "hydtransit",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "plugins": ["expo-router", "expo-location"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

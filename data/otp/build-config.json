@@ -1,0 +1,16 @@
+{
+  "transit": true,
+  "net": "file:///var/opentripplanner/osm/hyderabad.osm.pbf",
+  "transitFeeds": [
+    {
+      "type": "gtfs",
+      "source": "file:///var/opentripplanner/gtfs/tgsrtc.zip",
+      "feedId": "tgsrtc"
+    },
+    {
+      "type": "gtfs",
+      "source": "file:///var/opentripplanner/gtfs/hmrl.zip",
+      "feedId": "hmrl"
+    }
+  ]
+}

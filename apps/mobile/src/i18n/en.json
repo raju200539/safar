@@ -1,0 +1,8 @@
+{
+  "appName": "Hyd Transit",
+  "planTitle": "Plan a bus + Metro trip",
+  "fromPlaceholder": "From (stop, station, or use location)",
+  "toPlaceholder": "To",
+  "search": "Search",
+  "m0note": "M0 scaffold — trip results land in M4."
+}

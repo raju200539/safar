@@ -1,0 +1,33 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: hyd-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hyd
+      POSTGRES_PASSWORD: hyd
+      POSTGRES_DB: hydtransit
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  otp:
+    # Pinned OTP 2.x — verified latest 2.10.0 (Sep 2026).
+    # Source: https://github.com/opentripplanner/OpenTripPlanner/releases
+    image: opentripplanner/opentripplanner:2.10.0
+    container_name: hyd-otp
+    restart: unless-stopped
+    ports:
+      - '8080:8080'
+    volumes:
+      - ./data/gtfs:/var/opentripplanner/gtfs:ro
+      - ./data/osm:/var/opentripplanner/osm:ro
+      - ./data/otp:/var/opentripplanner/otp:ro
+    command:
+      - '--build'
+      - '/var/opentripplanner/otp'
+      - '--serve'
+
+volumes:
+  pgdata:

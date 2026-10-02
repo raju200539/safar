@@ -1,0 +1,16 @@
+{
+  "routingDefaults": {
+    "walkSpeed": 1.2,
+    "maxTransfers": 3,
+    "transferSlack": 120,
+    "itineraryFilters": {
+      "transitGeneralizedCostLimit": {
+        "costLimitFunction": "900 + 1.5 * instructed"
+      }
+    }
+  },
+  "transit": {
+    "dynamicSearchWindow": true
+  },
+  "updaters": []
+}

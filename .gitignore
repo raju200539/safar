@@ -1,0 +1,33 @@
+# Node / TS
+node_modules/
+dist/
+build/
+.expo/
+.expo-shared/
+*.tsbuildinfo
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Data (never commit downloaded feeds)
+data/gtfs/
+data/osm/
+data/otp/graph.obj
+data/otp/*.obj
+
+# Postgres / Docker volumes
+pgdata/
+
+# pnpm
+pnpm-lock.yaml
+.pnpm-store/
+
+# Logs / OS
+*.log
+.DS_Store
+Thumbs.db
+
+# Mobile
+apps/mobile/.expo/
