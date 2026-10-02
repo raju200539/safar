@@ -146,6 +146,22 @@ function metroLineName(
   return null;
 }
 
+/**
+ * TGSRTC tripShortNames repeat the route ("17H/219I_CHERLAPALLY_..._ISNAPUR").
+ * Strip the echoed route prefix and underscoring for spoken instructions.
+ */
+export function cleanHeadsign(raw: string, shortName?: string): string {
+  let s = raw.trim();
+  if (shortName) {
+    const prefix = shortName.trim();
+    if (s.toUpperCase().startsWith(prefix.toUpperCase())) {
+      s = s.slice(prefix.length).replace(/^[-_\s]+/, '');
+    }
+  }
+  s = s.replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
+  return s || raw;
+}
+
 function shortNameOf(leg: OtpLeg): string {
   if (leg.route?.shortName) {
     // HMRL shortNames are codes ("C1_RED"): show "Red Line" instead.
@@ -193,9 +209,9 @@ export function mapLeg(leg: OtpLeg): Leg | null {
       longName: leg.route?.longName ?? undefined,
       agency: leg.route?.agency?.name ?? '',
     };
-    const headsign =
+    const rawHeadsign =
       leg.headsign ?? leg.trip?.tripHeadsign ?? leg.trip?.tripShortName;
-    if (headsign) mapped.headsign = headsign;
+    if (rawHeadsign) mapped.headsign = cleanHeadsign(rawHeadsign, mapped.route?.shortName);
     // stopCalls include board + alight: travelled = calls - 1.
     mapped.stopCount =
       calls.length > 0

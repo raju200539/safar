@@ -8,6 +8,11 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 mkdir -p "$ROOT/data/gtfs"
 
 TGSRTC_URL="https://data.opencity.in/dataset/88e2d145-7ec6-4666-88dd-6cf18b18312e/resource/1b0d18bb-b2fb-4a79-8ed0-1e071da5790c/download/telangana_opendata_gtfs_tgsrtc_08_february_2026.zip"
+# NOTE (Oct 2026): TGSRTC sent a corrected feed directly
+# ("Telangana_opendata_gtfs_TGSRTC_25_September_2026.zip", 37 MB,
+# 4133 routes with route_short_name + shapes; garbage-trip rate 92% -> 0.2%).
+# data/gtfs/tgsrtc.zip is now that file. Fresher feeds are gated behind the
+# request form at https://tgsrtc.telangana.gov.in/open-data.
 
 echo "→ Downloading TGSRTC GTFS…"
 curl -fL "$TGSRTC_URL" -o "$ROOT/data/gtfs/tgsrtc.zip"

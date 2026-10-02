@@ -1,4 +1,5 @@
 import {
+  cleanHeadsign,
   dedupePlaces,
   mapDepartures,
   mapItinerary,
@@ -156,5 +157,12 @@ describe('mappers', () => {
       { name: 'Koti Bank Street', lat: 17.39, lon: 78.49 },
     ]);
     expect(places.map((p) => p.name)).toEqual(['Koti', 'Koti Bank Street']);
+  });
+
+  it('cleans echoed route prefixes from headsigns', () => {
+    expect(cleanHeadsign('17H/219I_CHERLAPALLY_RAILWAY_STATION_ISNAPUR', '17H/219I')).toBe(
+      'CHERLAPALLY RAILWAY STATION ISNAPUR',
+    );
+    expect(cleanHeadsign('L. B. Nagar', 'Red Line')).toBe('L. B. Nagar');
   });
 });
