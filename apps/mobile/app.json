@@ -19,7 +19,11 @@
         "backgroundColor": "#0B6E4F"
       }
     },
-    "plugins": ["expo-router", "expo-location"],
+    "plugins": [
+      "expo-router",
+      "expo-location",
+      "expo-splash-screen"
+    ],
     "experiments": {
       "typedRoutes": true
     }
