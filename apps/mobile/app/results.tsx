@@ -99,6 +99,11 @@ export default function Results(): React.JSX.Element {
     };
   }, [modeFilter, p.fromLat, p.fromLon, p.toLat, p.toLon, p.when]);
 
+  const fastestDur =
+    state.kind === 'done' && state.items.length > 0
+      ? Math.min(...state.items.map((x) => x.durationSec))
+      : Number.MAX_SAFE_INTEGER;
+
   return (
     <View style={styles.container}>
       <Stack.Screen
@@ -164,6 +169,7 @@ export default function Results(): React.JSX.Element {
         ? state.items.map((it) => {
             const id = putItinerary(it);
             const longWalk = it.walkDistanceM > 1500;
+            const fastest = it.durationSec === fastestDur;
             return (
               <Link key={it.id} href={{ pathname: '/itinerary', params: { id } }} asChild>
                 <Pressable style={styles.card}>
@@ -175,6 +181,12 @@ export default function Results(): React.JSX.Element {
                       <Text style={styles.dur}>{fmtDur(it.durationSec)}</Text>
                     </View>
                   </View>
+                  {fastest ? (
+                    <View style={styles.fastRow}>
+                      <Ionicons name="flash" size={14} color="#fff" />
+                      <Text style={styles.fastText}>{t('fastest')}</Text>
+                    </View>
+                  ) : null}
                   <Text style={styles.stages}>{stageSummary(it, t('walk'))}</Text>
                   {it.co2SavedKg != null && it.co2SavedKg > 0 ? (
                     <Text style={styles.co2}>
@@ -217,6 +229,17 @@ const styles = StyleSheet.create({
   times: { fontSize: 19, fontWeight: '800', color: theme.text, flex: 1 },
   durPill: { backgroundColor: '#E7F2ED', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
   dur: { fontSize: 14, fontWeight: '700', color: theme.primaryDark },
+  fastRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    alignSelf: 'flex-start',
+    backgroundColor: theme.primary,
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  fastText: { color: '#fff', fontSize: 12, fontWeight: '700' },
   stages: { fontSize: 14, color: theme.text },
   co2: { fontSize: 13, fontWeight: '600', color: theme.live },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
