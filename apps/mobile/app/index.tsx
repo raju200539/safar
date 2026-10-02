@@ -25,6 +25,7 @@ import {
   type Endpoint,
 } from '../src/api/endpoints';
 import { LeafletMap, type StopPin } from '../src/components/LeafletMap';
+import { BUILD_NUMBER } from '../src/ui/build';
 import { UiButton } from '../src/ui/UiButton';
 import { cardBase, theme, type } from '../src/ui/theme';
 import { animateLayout } from '../src/ui/anim';
@@ -322,6 +323,7 @@ export default function Home(): React.JSX.Element {
           API: {health} ({getBaseUrl()})
         </Text>
         <Text style={styles.credit}>{t('dataCredit')}</Text>
+        <Text style={styles.credit}>build {BUILD_NUMBER}</Text>
       </View>
 
       <Modal visible={destOpen} animationType="slide" transparent>

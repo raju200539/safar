@@ -45,7 +45,7 @@ s, trips = call(
     "/v1/plan?fromLat=17.385&fromLon=78.486&toLat=17.368&toLon=78.524&when=2026-10-05T10:00:00%2B05:30",
 )
 check("plan status", s == 200, f"status={s}")
-check("plan options", isinstance(trips, list) and 1 <= len(trips) <= 3, f"n={len(trips) if isinstance(trips, list) else '?'}")
+check("plan options", isinstance(trips, list) and 1 <= len(trips) <= 10, f"n={len(trips) if isinstance(trips, list) else '?'}")
 bus_legs = [l for t in trips for l in t["legs"] if l["mode"] in ("BUS", "METRO")]
 check("plan has transit leg", len(bus_legs) > 0)
 check("leg instruction", all(l.get("instruction") for t in trips for l in t["legs"]))

@@ -89,7 +89,7 @@ describe('rankItineraries', () => {
     const b = itin('b', [bus('tgsrtc:218', 'X', 'Y')]);
     const c = itin('c', [bus('tgsrtc:219')]);
     const d = itin('d', [bus('tgsrtc:218', 'P', 'Q')]);
-    expect(rankItineraries([a, b, c, d]).map((i) => i.id)).toEqual(['a', 'c', 'b']);
+    expect(rankItineraries([a, b, c, d]).map((i) => i.id)).toEqual(['a', 'c', 'b', 'd']);
   });
 
   it('does not bury a metro trip under multi-bus chains', () => {

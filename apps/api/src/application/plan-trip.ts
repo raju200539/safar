@@ -9,7 +9,7 @@ export interface PlanQuery {
   modes?: 'all' | 'bus' | 'metro';
 }
 
-export const MAX_ITINERARIES = 3;
+export const MAX_ITINERARIES = 10;
 
 /** OTP is asked for more than we show so ranking has material to choose from. */
 export const PLANNER_REQUEST_COUNT = 6;

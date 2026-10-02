@@ -23,7 +23,7 @@ A mobile app that takes a start and a destination and returns a complete **bus +
 First-time and occasional city bus riders in Hyderabad (students, office commuters, newcomers) who currently default to ride-sharing because buses feel confusing.
 
 ## 1.4 Goals (v1)
-1. Given any two points in Hyderabad, return up to 3 journey options using TGSRTC city buses and Hyderabad Metro, including transfers and walking legs.
+1. Given any two points in Hyderabad, return up to 10 journey options using TGSRTC city buses and Hyderabad Metro, including transfers and walking legs.
 2. Every transit leg shows a plain-language instruction: which bus/train, which stop to board at, which direction, where to get off, and how many stops.
 3. Show nearby stops and the next departures for a stop.
 4. Show live ETA for buses where a live source is available; otherwise clearly label times as "scheduled".
@@ -56,7 +56,7 @@ Ticketing or payments; user accounts or login; offline mode; push notifications;
 
 ## 1.8 Screens
 1. **Home / Plan:** from and to fields, "use my location", swap button, recent searches (local only).
-2. **Results:** up to 3 itinerary cards (departure to arrival time, duration, transfers, mode chips).
+2. **Results:** up to 10 itinerary cards (departure to arrival time, duration, transfers, mode chips).
 3. **Itinerary detail:** ordered legs with instructions, expandable intermediate stops, map toggle.
 4. **Stop detail:** stop name, upcoming departures with live/scheduled badge, recent reports.
 5. **Report sheet:** pick type (not running, diverted, overcrowded, other), optional note, submit.
@@ -232,7 +232,7 @@ interface Geocoder { search(q: string, limit: number): Promise<Place[]>; }
 
 | Method | Path | Returns |
 |---|---|---|
-| GET | `/v1/plan?fromLat&fromLon&toLat&toLon&when&arriveBy` | `Itinerary[]` (max 3) |
+| GET | `/v1/plan?fromLat&fromLon&toLat&toLon&when&arriveBy` | `Itinerary[]` (max 10) |
 | GET | `/v1/stops/search?q=` | `Place[]` |
 | GET | `/v1/stops/nearby?lat&lon&radius=500` | `Place[]` |
 | GET | `/v1/stops/:id/arrivals` | `Arrival[]` |
@@ -280,7 +280,7 @@ Strings come from i18n keys, not hard-coded English, so Telugu can be added.
 *Done when:* OTP builds the graph and a GraphQL `plan` query between two known Hyderabad points returns a bus itinerary; a Metro-including query also works. Record the sample queries in `docs/otp-queries.md`.
 
 **M2 — Plan API.** Domain types, `TripPlanner` port, `OtpPlanner` adapter (GraphQL to `Itinerary`), `PlanTrip` use case, instruction generator with tests, `/v1/plan`.
-*Done when:* curl on `/v1/plan` returns up to 3 itineraries, each leg with an `instruction`.
+*Done when:* curl on `/v1/plan` returns up to 10 itineraries, each leg with an `instruction`.
 
 **M3 — Stops API.** `TransitSchedule` adapter via OTP, `/v1/stops/search`, `/nearby`, `/:id/arrivals`; optional `Geocoder` adapter (rate-limited, cached, behind the port).
 *Done when:* nearby and departures work for a known stop.
