@@ -11,19 +11,13 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { api, getDeviceId } from '../src/api/client';
+import { fmtDateTime, fmtTime } from '../src/api/format';
 import { openStopDirections } from '../src/api/navigate';
 import { shadows, theme } from '../src/ui/theme';
 import type { Arrival, Report } from '@hyd/shared';
 import '../src/i18n';
 
 const TYPES = ['NOT_RUNNING', 'DIVERTED', 'OVERCROWDED', 'OTHER'] as const;
-
-function fmtTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 export default function Stop(): React.JSX.Element {
   const { t } = useTranslation();
@@ -102,7 +96,7 @@ export default function Stop(): React.JSX.Element {
       {reports?.length === 0 ? <Text>{t('noReports')}</Text> : null}
       {reports?.map((r) => (
         <Text key={r.id}>
-          {r.type} · {new Date(r.createdAt).toLocaleString()}
+          {r.type} · {fmtDateTime(r.createdAt)}
           {r.note ? ` — ${r.note}` : ''}
         </Text>
       ))}

@@ -10,16 +10,10 @@ import {
 import { useTranslation } from 'react-i18next';
 import { ApiError, api, addRecentSearch } from '../src/api/client';
 import { putItinerary } from '../src/api/itinerary-store';
+import { fmtTime } from '../src/api/format';
 import { shadows, theme } from '../src/ui/theme';
 import type { Itinerary } from '@hyd/shared';
 import '../src/i18n';
-
-function fmtTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
 
 function fmtDur(sec: number): string {
   const m = Math.round(sec / 60);
