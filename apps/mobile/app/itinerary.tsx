@@ -3,6 +3,7 @@ import { Button, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { Itinerary, Leg } from '@hyd/shared';
 import { getItinerary } from '../src/api/itinerary-store';
+import { fmtTime } from '../src/api/format';
 import { openWalkDirections } from '../src/api/navigate';
 import { MapView } from '../src/components/MapView';
 import { cardBase, theme } from '../src/ui/theme';
@@ -75,6 +76,11 @@ export default function ItineraryDetail(): React.JSX.Element {
                   : ''}
                 {Math.max(1, Math.round(leg.durationSec / 60))} min
               </Text>
+              {leg.mode !== 'WALK' ? (
+                <Text style={styles.times}>
+                  {fmtTime(leg.startTime)} → {fmtTime(leg.endTime)}
+                </Text>
+              ) : null}
               {leg.intermediateStops && leg.intermediateStops.length > 0 ? (
                 <Text style={styles.stops}>
                   {leg.intermediateStops.map((s) => s.name).join(' · ')}
@@ -122,5 +128,6 @@ const styles = StyleSheet.create({
   live: { color: theme.live, fontWeight: '700' },
   instruction: { fontSize: 15, color: theme.text },
   meta: { color: theme.muted },
+  times: { fontSize: 16, fontWeight: '700', color: theme.primaryDark },
   stops: { color: theme.muted },
 });
