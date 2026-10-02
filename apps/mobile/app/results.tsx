@@ -1,10 +1,10 @@
 import { Link, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiError, api, addRecentSearch } from '../src/api/client';
-import { getLastSearch, getSearch, putItinerary, putLastSearch, putSearch } from '../src/api/itinerary-store';
+import { getSearch, putItinerary, putLastSearch, putSearch } from '../src/api/itinerary-store';
 import { fmtTime } from '../src/api/format';
 import { EmptyState } from '../src/ui/EmptyState';
 import { animateLayout } from '../src/ui/anim';
@@ -19,17 +19,54 @@ function fmtDur(sec: number): string {
   return `${Math.floor(m / 60)}h ${m % 60}m`;
 }
 
-function stageSummary(it: Itinerary, walkLabel: string): string {
-  return it.legs
-    .map((l) => {
-      if (l.mode === 'WALK') {
-        const m = Math.round(l.distanceM ?? 0);
-        return `🚶 ${m >= 1000 ? `${(m / 1000).toFixed(1)} km` : `${m} m`} ${walkLabel}`;
-      }
-      return `${l.mode === 'BUS' ? '🚌' : '🚇'} ${l.route?.shortName ?? ''}`;
-    })
-    .join('  →  ');
+function legColor(mode: string): string {
+  if (mode === 'BUS') return theme.bus;
+  if (mode === 'METRO') return theme.metro;
+  return '#B9C0CC';
 }
+
+function legIcon(mode: string): string {
+  if (mode === 'BUS') return '🚌';
+  if (mode === 'METRO') return '🚇';
+  return '🚶';
+}
+
+/** Visual strip: one segment per stage, width ∝ duration. */
+function StageStrip({ legs }: { legs: Itinerary['legs'] }): React.JSX.Element {
+  const total = Math.max(
+    1,
+    legs.reduce((a, l) => a + l.durationSec, 0),
+  );
+  return (
+    <View style={stripStyles.strip}>
+      {legs.map((l, i) => (
+        <View
+          key={i}
+          style={{
+            flexGrow: Math.max(1, l.durationSec),
+            flexBasis: 0,
+            height: 26,
+            backgroundColor: l.mode === 'WALK' ? '#EDF0F3' : legColor(l.mode),
+            borderRadius: 8,
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Text style={stripStyles.glyph}>{legIcon(l.mode)}</Text>
+        </View>
+      ))}
+      <Text style={stripStyles.total}>
+        {Math.round(total / 60)} min
+      </Text>
+    </View>
+  );
+}
+
+const stripStyles = StyleSheet.create({
+  strip: { flexDirection: 'row', gap: 3, alignItems: 'center' },
+  glyph: { fontSize: 13 },
+  total: { fontSize: 12, color: theme.muted, marginLeft: 4 },
+});
 
 export default function Results(): React.JSX.Element {
   const { t } = useTranslation();
@@ -114,7 +151,7 @@ export default function Results(): React.JSX.Element {
       : Number.MAX_SAFE_INTEGER;
 
   return (
-    <View style={styles.container}>
+    <ScrollView contentContainerStyle={styles.container}>
       <Stack.Screen
         options={{ title: t('resultsTitle'), headerLeft: () => <ScreenBack /> }}
       />
@@ -186,22 +223,17 @@ export default function Results(): React.JSX.Element {
                     <Text style={styles.times}>
                       {fmtTime(it.startTime)} – {fmtTime(it.endTime)}
                     </Text>
+                    {fastest ? (
+                      <View style={styles.fastRow}>
+                        <Ionicons name="flash" size={13} color="#fff" />
+                        <Text style={styles.fastText}>{t('fastest')}</Text>
+                      </View>
+                    ) : null}
                     <View style={styles.durPill}>
                       <Text style={styles.dur}>{fmtDur(it.durationSec)}</Text>
                     </View>
                   </View>
-                  {fastest ? (
-                    <View style={styles.fastRow}>
-                      <Ionicons name="flash" size={14} color="#fff" />
-                      <Text style={styles.fastText}>{t('fastest')}</Text>
-                    </View>
-                  ) : null}
-                  <Text style={styles.stages}>{stageSummary(it, t('walk'))}</Text>
-                  {it.co2SavedKg != null && it.co2SavedKg > 0 ? (
-                    <Text style={styles.co2}>
-                      {t('co2Saved', { kg: it.co2SavedKg.toFixed(2) })}
-                    </Text>
-                  ) : null}
+                  <StageStrip legs={it.legs} />
                   <View style={styles.metaRow}>
                     <Ionicons name="git-compare-outline" size={14} color={theme.muted} />
                     <Text style={styles.meta}>
@@ -211,18 +243,27 @@ export default function Results(): React.JSX.Element {
                       {longWalk ? ` · ${t('longWalk')}` : ''}
                     </Text>
                   </View>
+                  {it.co2SavedKg != null && it.co2SavedKg > 0 ? (
+                    <Text style={styles.co2}>
+                      {t('co2Saved', { kg: it.co2SavedKg.toFixed(2) })}
+                    </Text>
+                  ) : null}
                   {it.note ? <Text style={styles.note}>{it.note}</Text> : null}
+                  <View style={styles.goRow}>
+                    <Text style={styles.goText}>{t('viewTrip')}</Text>
+                    <Ionicons name="chevron-forward" size={18} color={theme.primary} />
+                  </View>
                 </Pressable>
               </Link>
             );
           })
         : null}
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 12, backgroundColor: theme.bg },
+  container: { flexGrow: 1, padding: 16, gap: 12, backgroundColor: theme.bg },
   routeRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   route: { fontSize: 16, fontWeight: '700', color: theme.text, flex: 1 },
   noticeBox: {
@@ -253,6 +294,8 @@ const styles = StyleSheet.create({
   co2: { fontSize: 13, fontWeight: '600', color: theme.live },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   meta: { fontSize: 13, color: theme.muted },
+  goRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 2 },
+  goText: { fontSize: 14, fontWeight: '700', color: theme.primary },
   note: { fontSize: 13, color: theme.warning, fontStyle: 'italic' },
   chipRow: { flexDirection: 'row', gap: 8 },
   chipOff: {

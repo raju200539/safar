@@ -22,6 +22,7 @@
   "modeBus": "Bus",
   "modeMetro": "Metro",
   "fastest": "Fastest",
+  "viewTrip": "View trip",
   "navigateTrip": "Navigate full trip",
   "totalFare": "Total fare",
   "changeCity": "Change city",
