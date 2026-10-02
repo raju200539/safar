@@ -13,8 +13,20 @@ function fmtDist(m: number | undefined, t: T): string {
 }
 
 /** Structured, imperative steps per leg (locale-aware via t). */
-export function buildSteps(leg: Leg, t: T): LegSteps {
+export function buildSteps(leg: Leg, t: T, next?: Leg): LegSteps {
   if (leg.mode === 'WALK') {
+    // Interchange walk into a transit boarding: aim at the platform.
+    if (next && next.mode !== 'WALK' && next.from.platformCode) {
+      return {
+        title: `${t('stepWalk')} ${t('platform', { n: next.from.platformCode })}`,
+        steps: [
+          t('stepWalkPlatform', {
+            n: next.from.platformCode,
+            stop: leg.to.name,
+          }),
+        ],
+      };
+    }
     const d = leg.distanceM != null ? ` (${fmtDist(leg.distanceM, t)})` : '';
     return {
       title: `${t('stepWalk')}${d}`,

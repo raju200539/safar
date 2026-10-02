@@ -126,7 +126,7 @@ export default function ItineraryDetail(): React.JSX.Element {
       ) : null}
       {trip.legs.map((leg, i) => {
         const last = i === trip.legs.length - 1;
-        const st = buildSteps(leg, (k, v) => t(k, v));
+        const st = buildSteps(leg, (k, v) => t(k, v), trip.legs[i + 1]);
         return (
           <View key={`${trip.id}-${i}`} style={styles.row}>
             <View style={styles.rail}>

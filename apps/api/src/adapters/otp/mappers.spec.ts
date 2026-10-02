@@ -190,8 +190,7 @@ describe('mappers', () => {
     expect(walk.instruction).toContain('Platform 2');
   });
 
-  it('matches interchanges by parent station across platform names', () => {
-    const mk = (from: string, to: string, station?: string): import('@hyd/shared').Leg => ({
+  it('matches interchanges by parent station across platform names', () => {    const mk = (from: string, to: string, station?: string): import('@hyd/shared').Leg => ({
       mode: 'WALK',
       from: { name: from, lat: 1, lon: 1, ...(station ? { station } : {}) },
       to: { name: to, lat: 1, lon: 1, ...(station ? { station } : {}) },
@@ -208,6 +207,26 @@ describe('mappers', () => {
     const w = mk('Ameerpet Metro', 'Ameerpet', 'Ameerpet');
     applyInterchangeHints([mk('X', 'Y'), w, next]);
     expect(w.instruction).toContain('Change here');
+  });
+
+  it('aims walks at the next platform when stations differ', () => {
+    const walk: import('@hyd/shared').Leg = {
+      mode: 'WALK',
+      from: { name: 'Road', lat: 1, lon: 1 },
+      to: { name: 'Ameerpet', lat: 1, lon: 1 },
+      startTime: '2026-10-05T10:00:00+05:30',
+      endTime: '2026-10-05T10:05:00+05:30',
+      durationSec: 300,
+      geometry: '',
+      instruction: '',
+    };
+    const next = mapLeg(BUS_LEG);
+    if (!next) throw new Error('fixture failed');
+    next.mode = 'METRO';
+    next.from = { name: 'Ameerpet', lat: 1, lon: 1, platformCode: '4' };
+    next.route = { id: 'hmrl:BLUE', shortName: 'Blue Line', agency: 'HMRL' };
+    applyInterchangeHints([walk, next]);
+    expect(walk.instruction).toContain('Platform 4');
   });
 
   it('strips OTP translation markers from names', () => {

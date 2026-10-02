@@ -274,15 +274,22 @@ export function applyInterchangeHints(legs: Leg[]): void {
     if (!leg || leg.mode !== 'WALK' || !next || next.mode === 'WALK') continue;
     const a = stationKey(leg.from);
     const b = stationKey(leg.to);
-    if (!a || a !== b) continue;
+    const c = stationKey(next.from);
     const line = next.route?.shortName ?? (next.mode === 'METRO' ? 'metro' : 'bus');
     const platform = next.from.platformCode
-      ? ` from Platform ${next.from.platformCode}`
+      ? ` Platform ${next.from.platformCode}`
       : '';
     const head = next.headsign ? ` towards ${next.headsign}` : '';
-    leg.instruction =
-      `Change here at ${leg.from.name} — no need to exit. ` +
-      `Take ${line}${head}${platform}.`;
+    if (a && a === b) {
+      // Inside one station: no street walking involved.
+      leg.instruction =
+        `Change here at ${leg.from.name} — no need to exit. ` +
+        `Take ${line}${head}${platform}.`;
+    } else if (b && b === c && next.from.platformCode) {
+      // Walk ends at the next boarding: aim at the platform.
+      leg.instruction =
+        `Walk to${platform} at ${leg.to.name} and board ${line}${head}.`;
+    }
   }
 }
 

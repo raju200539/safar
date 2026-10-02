@@ -55,6 +55,7 @@
   "fare": "₹{{inr}}",
   "stepWalk": "నడవండి",
   "stepWalkTo": "{{stop}} వరకు నడవండి",
+  "stepWalkPlatform": "{{stop}}లో ప్లాట్‌ఫారం {{n}}కు నడవండి",
   "busWord": "బస్సు",
   "metroWord": "మెట్రో",
   "stepBoard": "{{stop}} వద్ద {{kind}} {{no}} ఎక్కండి",
