@@ -43,6 +43,11 @@ export default function ItineraryDetail(): React.JSX.Element {
     <ScrollView contentContainerStyle={styles.container}>
       <Stack.Screen options={{ title: t('resultsTitle') }} />
       <MapView itinerary={trip} />
+      {trip.co2SavedKg != null && trip.co2SavedKg > 0 ? (
+        <View style={[styles.co2box, shadows.card]}>
+          <Text style={styles.co2}>{t('co2Saved', { kg: trip.co2SavedKg.toFixed(2) })}</Text>
+        </View>
+      ) : null}
       {trip.legs.map((leg, i) => {
         const last = i === trip.legs.length - 1;
         return (
@@ -96,6 +101,8 @@ export default function ItineraryDetail(): React.JSX.Element {
 
 const styles = StyleSheet.create({
   container: { padding: 16, gap: 4, backgroundColor: theme.bg },
+  co2box: { padding: 12 },
+  co2: { fontWeight: '700', color: theme.live },
   row: { flexDirection: 'row', gap: 10 },
   rail: { alignItems: 'center', width: 16, paddingTop: 18 },
   dot: { width: 12, height: 12, borderRadius: 6 },

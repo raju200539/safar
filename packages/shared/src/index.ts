@@ -47,6 +47,8 @@ export interface Itinerary {
   transfers: number;
   walkDistanceM: number;
   legs: Leg[];
+  /** Estimated CO₂ saved vs the same trip by private car. */
+  co2SavedKg?: number;
 }
 
 export type ArrivalSource = 'live' | 'scheduled';

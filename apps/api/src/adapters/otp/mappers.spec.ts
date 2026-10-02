@@ -1,6 +1,7 @@
 import {
   cleanHeadsign,
   dedupePlaces,
+  estimateCo2SavedKg,
   mapDepartures,
   mapItinerary,
   mapLeg,
@@ -164,5 +165,18 @@ describe('mappers', () => {
       'CHERLAPALLY RAILWAY STATION ISNAPUR',
     );
     expect(cleanHeadsign('L. B. Nagar', 'Red Line')).toBe('L. B. Nagar');
+  });
+
+  it('estimates CO2 saved vs car', () => {
+    // 10 km bus (0.08) + 5 km metro (0.035) vs car (0.18).
+    const legs: import('@hyd/shared').Leg[] = [
+      { ...mapLeg(BUS_LEG), distanceM: 10000 } as import('@hyd/shared').Leg,
+      {
+        ...mapLeg(BUS_LEG),
+        mode: 'METRO',
+        distanceM: 5000,
+      } as import('@hyd/shared').Leg,
+    ];
+    expect(estimateCo2SavedKg(legs)).toBeCloseTo(1.73, 2);
   });
 });

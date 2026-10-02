@@ -243,7 +243,30 @@ export function mapItinerary(it: OtpItinerary, index: number): Itinerary | null 
       it.numberOfTransfers ?? it.transfers ?? Math.max(0, transitLegs - 1),
     walkDistanceM: Math.round(Number(it.walkDistance ?? 0)),
     legs,
+    co2SavedKg: estimateCo2SavedKg(legs),
   };
+}
+
+/**
+ * Approximate CO₂ saved vs driving the transit legs by private petrol car.
+ * Emission factors (kg per passenger-km, typical Indian values):
+ * car 0.18, bus 0.08, electric metro 0.035, walk 0.
+ * Labelled an estimate everywhere it is shown.
+ */
+const CO2_KG_PER_KM: Record<Mode, number> = {
+  WALK: 0,
+  BUS: 0.08,
+  METRO: 0.035,
+};
+const CAR_KG_PER_KM = 0.18;
+
+export function estimateCo2SavedKg(legs: Leg[]): number {
+  let saved = 0;
+  for (const leg of legs) {
+    const km = (leg.distanceM ?? 0) / 1000;
+    saved += Math.max(0, CAR_KG_PER_KM - (CO2_KG_PER_KM[leg.mode] ?? 0)) * km;
+  }
+  return Math.round(saved * 100) / 100;
 }
 
 // --- Stops / departures mapping (M3) ---

@@ -125,6 +125,11 @@ export default function Results(): React.JSX.Element {
                     </View>
                   </View>
                   <Text style={styles.stages}>{stageSummary(it, t('walk'))}</Text>
+                  {it.co2SavedKg != null && it.co2SavedKg > 0 ? (
+                    <Text style={styles.co2}>
+                      {t('co2Saved', { kg: it.co2SavedKg.toFixed(2) })}
+                    </Text>
+                  ) : null}
                   <View style={styles.metaRow}>
                     <Ionicons name="git-compare-outline" size={14} color={theme.muted} />
                     <Text style={styles.meta}>
@@ -161,6 +166,7 @@ const styles = StyleSheet.create({
   durPill: { backgroundColor: '#E7F2ED', borderRadius: 12, paddingHorizontal: 10, paddingVertical: 4 },
   dur: { fontSize: 14, fontWeight: '700', color: theme.primaryDark },
   stages: { fontSize: 14, color: theme.text },
+  co2: { fontSize: 13, fontWeight: '600', color: theme.live },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   meta: { fontSize: 13, color: theme.muted },
 });

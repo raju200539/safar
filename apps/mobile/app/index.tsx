@@ -2,6 +2,7 @@ import { Link, Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import * as Location from 'expo-location';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import {
@@ -18,6 +20,7 @@ import {
   getRecentSearches,
   type RecentSearch,
 } from '../src/api/client';
+import { fmtDateTime } from '../src/api/format';
 import {
   getEndpoints,
   setEndpoint,
@@ -66,8 +69,9 @@ export default function Home(): React.JSX.Element {
   const [locating, setLocating] = useState(false);
   const [recent, setRecent] = useState<RecentSearch[]>([]);
   const [departMode, setDepartMode] = useState<'now' | 'at'>('now');
-  const [hour, setHour] = useState('');
-  const [minute, setMinute] = useState('');
+  const [atTime, setAtTime] = useState<Date | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [cityOpen, setCityOpen] = useState(false);
   const fromResults = useStopSearch(from && fromText === from.name ? '' : fromText);
   const toResults = useStopSearch(to && toText === to.name ? '' : toText);
 
@@ -125,20 +129,22 @@ export default function Home(): React.JSX.Element {
     }
   };
 
-  const canSearch = from != null && to != null;
+  const canSearch = from != null && to != null && (departMode === 'now' || atTime != null);
 
-  // "Depart at HH:MM": today if still ahead, else tomorrow (device timezone).
+  // "Depart at": today if still ahead, else tomorrow (device timezone).
   const chosenWhen = (): string | undefined => {
-    if (departMode === 'now') return undefined;
-    const h = Number(hour);
-    const m = Number(minute);
-    if (!Number.isInteger(h) || !Number.isInteger(m) || h < 0 || h > 23 || m < 0 || m > 59) {
-      return undefined;
-    }
+    if (departMode === 'now' || !atTime) return undefined;
     const d = new Date();
-    d.setHours(h, m, 0, 0);
+    d.setHours(atTime.getHours(), atTime.getMinutes(), 0, 0);
     if (d.getTime() <= Date.now()) d.setDate(d.getDate() + 1);
     return d.toISOString();
+  };
+
+  const atLabel = (): string => {
+    if (!atTime) return t('pickTime');
+    const h = atTime.getHours().toString().padStart(2, '0');
+    const m = atTime.getMinutes().toString().padStart(2, '0');
+    return `${h}:${m}`;
   };
 
   const params = {
@@ -219,6 +225,38 @@ export default function Home(): React.JSX.Element {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <Stack.Screen options={{ title: t('appName') }} />
+      <Pressable style={styles.city} onPress={() => setCityOpen(true)}>
+        <Ionicons name="location-outline" size={20} color={theme.primary} />
+        <Text style={styles.cityText}>{t('currentCity')}</Text>
+        <Ionicons name="chevron-down" size={18} color={theme.muted} />
+      </Pressable>
+      <Modal visible={cityOpen} transparent animationType="fade">
+        <Pressable style={styles.sheet} onPress={() => setCityOpen(false)}>
+          <View style={[shadows.card, styles.sheetBox]}>
+            <Text style={type.h2}>{t('changeCity')}</Text>
+            {['Hyderabad', 'Bengaluru', 'Chennai', 'Delhi', 'Mumbai'].map((c) => {
+              const live = c === 'Hyderabad';
+              return (
+                <Pressable
+                  key={c}
+                  style={styles.cityRow}
+                  onPress={() => {
+                    if (live) setCityOpen(false);
+                    else alert(t('cityLocked'));
+                  }}
+                >
+                  <Text style={styles.cityText}>{c}</Text>
+                  {live ? (
+                    <Ionicons name="checkmark-circle" size={20} color={theme.live} />
+                  ) : (
+                    <Text style={styles.soon}>{t('comingSoon')}</Text>
+                  )}
+                </Pressable>
+              );
+            })}
+          </View>
+        </Pressable>
+      </Modal>
       <Text style={type.h1}>{t('planTitle')}</Text>
 
       <View style={[shadows.card, styles.block]}>
@@ -263,24 +301,23 @@ export default function Home(): React.JSX.Element {
           </Pressable>
           {departMode === 'at' ? (
             <View style={styles.timeRow}>
-              <TextInput
-                style={[styles.input, styles.time]}
-                placeholder="HH"
-                value={hour}
-                onChangeText={setHour}
-                keyboardType="numeric"
-                maxLength={2}
-              />
-              <Text style={type.h2}>:</Text>
-              <TextInput
-                style={[styles.input, styles.time]}
-                placeholder="MM"
-                value={minute}
-                onChangeText={setMinute}
-                keyboardType="numeric"
-                maxLength={2}
-              />
+              <Pressable style={styles.timeBtn} onPress={() => setPickerOpen(true)}>
+                <Ionicons name="time-outline" size={20} color={theme.primary} />
+                <Text style={styles.timeText}>{atLabel()}</Text>
+              </Pressable>
             </View>
+          ) : null}
+          {pickerOpen ? (
+            <DateTimePicker
+              value={atTime ?? new Date()}
+              mode="time"
+              is24Hour
+              display="clock"
+              onChange={(_e: unknown, d?: Date) => {
+                setPickerOpen(false);
+                if (d) setAtTime(d);
+              }}
+            />
           ) : null}
         </View>
       </View>
@@ -294,7 +331,7 @@ export default function Home(): React.JSX.Element {
       />
 
       {recent.length > 0 ? (
-        <View style={[shadows.card, styles.block]}>
+        <View style={{ gap: 8 }}>
           <Text style={type.h2}>{t('recent')}</Text>
           {recent.slice(0, 3).map((r) => (
             <Link
@@ -310,10 +347,18 @@ export default function Home(): React.JSX.Element {
                   toLon: String(r.toLon),
                 },
               }}
+              asChild
             >
-              <Text style={styles.recentText}>
-                {r.fromName} → {r.toName}
-              </Text>
+              <Pressable style={[shadows.card, styles.recentCard]}>
+                <Ionicons name="time-outline" size={20} color={theme.primary} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.recentRoute} numberOfLines={1}>
+                    {r.fromName} → {r.toName}
+                  </Text>
+                  <Text style={type.small}>{fmtDateTime(r.at)}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={theme.muted} />
+              </Pressable>
             </Link>
           ))}
         </View>
@@ -366,9 +411,59 @@ const styles = StyleSheet.create({
   segOn: { backgroundColor: theme.primary },
   segText: { fontWeight: '700', color: theme.muted },
   segTextOn: { color: '#fff' },
-  timeRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginLeft: 'auto' },
-  time: { width: 60, textAlign: 'center' },
-  recentText: { fontSize: 15, color: theme.primaryDark, paddingVertical: 6 },
+  timeRow: { flexDirection: 'row', alignItems: 'center', marginLeft: 'auto' },
+  timeBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#EDF0F3',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    minHeight: theme.tap,
+  },
+  timeText: { fontSize: 17, fontWeight: '700', color: theme.text },
+  recentCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 14,
+  },
+  recentRoute: { fontSize: 15, fontWeight: '700', color: theme.text },
+  city: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: '#E7F2ED',
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    minHeight: 40,
+  },
+  cityText: { fontWeight: '700', color: theme.primaryDark },
+  sheet: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  sheetBox: { padding: 20, gap: 6, borderRadius: 20, margin: 12 },
+  cityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderColor: theme.border,
+  },
+  soon: {
+    marginLeft: 'auto',
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.warning,
+    backgroundColor: theme.warningBg,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
   health: { marginTop: 8, opacity: 0.6 },
   credit: { opacity: 0.5, fontSize: 12 },
 });

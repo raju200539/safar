@@ -1,12 +1,24 @@
 {
   "expo": {
-    "name": "Hyd Transit",
-    "slug": "hyd-transit",
+    "name": "Safar",
+    "slug": "safar",
     "version": "0.1.0",
     "orientation": "portrait",
-    "scheme": "hydtransit",
+    "icon": "./assets/icon.png",
+    "scheme": "safar",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0B6E4F"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0B6E4F"
+      }
+    },
     "plugins": ["expo-router", "expo-location"],
     "experiments": {
       "typedRoutes": true

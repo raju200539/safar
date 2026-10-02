@@ -1,6 +1,6 @@
 // Hermes on Android lacks full Intl support (same reason i18n uses
 // compatibilityJSON v3). Format times manually instead of toLocale*().
-export function fmtTime(iso: string): string {
+export function fmtTime(iso: string | number): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '--:--';
   let h = d.getHours();
@@ -10,7 +10,7 @@ export function fmtTime(iso: string): string {
   return `${h}:${m} ${suffix}`;
 }
 
-export function fmtDateTime(iso: string): string {
+export function fmtDateTime(iso: string | number): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
   const day = d.getDate().toString().padStart(2, '0');
