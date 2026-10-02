@@ -2,6 +2,7 @@ import { Link, Stack, useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   Pressable,
   ScrollView,
@@ -242,7 +243,7 @@ export default function Home(): React.JSX.Element {
                   style={styles.cityRow}
                   onPress={() => {
                     if (live) setCityOpen(false);
-                    else alert(t('cityLocked'));
+                    else Alert.alert(t('comingSoon'), t('cityLocked'));
                   }}
                 >
                   <Text style={styles.cityText}>{c}</Text>
