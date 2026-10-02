@@ -4,7 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-nati
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiError, api, addRecentSearch } from '../src/api/client';
-import { putItinerary } from '../src/api/itinerary-store';
+import { getSearch, putItinerary, putSearch } from '../src/api/itinerary-store';
 import { fmtTime } from '../src/api/format';
 import { EmptyState } from '../src/ui/EmptyState';
 import { animateLayout } from '../src/ui/anim';
@@ -59,16 +59,20 @@ export default function Results(): React.JSX.Element {
 
   useEffect(() => {
     let live = true;
-    setState({ kind: 'loading' });
     const fromLat = Number(p.fromLat);
     const fromLon = Number(p.fromLon);
     const toLat = Number(p.toLat);
     const toLon = Number(p.toLon);
+    const key = `${p.fromLat},${p.fromLon}|${p.toLat},${p.toLon}|${p.when ?? ''}|${modeFilter}`;
+    const cached = getSearch(key);
+    if (cached) setState({ kind: 'done', items: cached });
+    else setState({ kind: 'loading' });
     api
       .plan({ fromLat, fromLon, toLat, toLon, when: p.when, modes: modeFilter })
       .then((items) => {
         if (!live) return;
         animateLayout();
+        putSearch(key, items);
         setState({ kind: 'done', items });
         void addRecentSearch({
           fromName: p.fromName ?? '',

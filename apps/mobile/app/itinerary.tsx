@@ -1,14 +1,37 @@
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { Button, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Button, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { Itinerary, Leg } from '@hyd/shared';
 import { getItinerary } from '../src/api/itinerary-store';
 import { fmtTime } from '../src/api/format';
+import { useState } from 'react';
 import { openWalkDirections } from '../src/api/navigate';
 import { MapView } from '../src/components/MapView';
 import { cardBase, theme } from '../src/ui/theme';
 import { ScreenBack } from '../src/ui/ScreenBack';
 import '../src/i18n';
+
+function StopsToggle({
+  stops,
+  collapsedLabel,
+  expandedLabel,
+}: {
+  stops: string[];
+  collapsedLabel: string;
+  expandedLabel: string;
+}): React.JSX.Element {
+  const [open, setOpen] = useState(false);
+  return (
+    <View>
+      <Pressable onPress={() => setOpen(!open)} hitSlop={8}>
+        <Text style={styles.toggle}>
+          {open ? expandedLabel : collapsedLabel} {open ? '▴' : '▾'}
+        </Text>
+      </Pressable>
+      {open ? <Text style={styles.stops}>{stops.join(' · ')}</Text> : null}
+    </View>
+  );
+}
 
 function modeColor(mode: Leg['mode']): string {
   if (mode === 'BUS') return theme.bus;
@@ -97,9 +120,14 @@ export default function ItineraryDetail(): React.JSX.Element {
                 </View>
               ) : null}
               {leg.intermediateStops && leg.intermediateStops.length > 0 ? (
-                <Text style={styles.stops}>
-                  {leg.intermediateStops.map((s) => s.name).join(' · ')}
-                </Text>
+                <StopsToggle
+                  stops={leg.intermediateStops.map((s) => s.name)}
+                  collapsedLabel={t('stopsBetween', { n: leg.intermediateStops.length })}
+                  expandedLabel={t('hideStops')}
+                />
+              ) : null}
+              {leg.mode === 'BUS' ? (
+                <Text style={styles.fareNote}>{t('busFareNote')}</Text>
               ) : null}
               {leg.mode === 'WALK' ? (
                 <Button
@@ -164,4 +192,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   stops: { color: theme.muted },
+  toggle: { color: theme.primary, fontWeight: '700' },
+  fareNote: { color: theme.muted, fontStyle: 'italic' },
 });
