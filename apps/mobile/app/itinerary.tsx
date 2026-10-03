@@ -8,7 +8,6 @@ import { fmtTime } from '../src/api/format';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
 import * as Location from 'expo-location';
-import * as Notifications from 'expo-notifications';
 import { openTripTransit, openWalkDirections } from '../src/api/navigate';
 import { UiButton } from '../src/ui/UiButton';
 import { MapView } from '../src/components/MapView';
@@ -83,13 +82,21 @@ function TripTracker({ trip }: { trip: Itinerary }): React.JSX.Element | null {
     let sub: Location.LocationSubscription | null = null;
     let live = true;
     (async () => {
+      let notify: ((title: string, body: string) => Promise<void>) | null = null;
       try {
-        const [{ status: loc }, { status: notif }] = await Promise.all([
-          Location.requestForegroundPermissionsAsync(),
-          Notifications.requestPermissionsAsync(),
-        ]);
-        if (!live || loc !== 'granted') return;
-        if (notif !== 'granted') return;
+        // Dynamic import: expo-notifications is unavailable in some
+        // environments (newer Expo Go); the trip still works without it.
+        const Notifications = await import('expo-notifications');
+        const locPerm = await Location.requestForegroundPermissionsAsync();
+        if (!live || locPerm.status !== 'granted') return;
+        const notifPerm = await Notifications.requestPermissionsAsync().catch(() => null);
+        if (!live || !notifPerm || notifPerm.status !== 'granted') return;
+        notify = async (title: string, body: string) => {
+          await Notifications.scheduleNotificationAsync({
+            content: { title, body },
+            trigger: null,
+          });
+        };
         setActive(true);
         sub = await Location.watchPositionAsync(
           {
@@ -98,6 +105,8 @@ function TripTracker({ trip }: { trip: Itinerary }): React.JSX.Element | null {
             timeInterval: 15000,
           },
           (pos) => {
+            if (!notify) return;
+            const send = notify;
             const now = Date.now();
             for (const leg of trip.legs) {
               if (leg.mode === 'WALK') continue;
@@ -112,17 +121,14 @@ function TripTracker({ trip }: { trip: Itinerary }): React.JSX.Element | null {
               );
               if (d <= 150) {
                 notified.current.add(key);
-                void Notifications.scheduleNotificationAsync({
-                  content: {
-                    title: 'Safar',
-                    body: t('notifBoard', {
-                      stop: leg.from.name,
-                      route: leg.route?.shortName ?? '',
-                      head: leg.headsign ?? '',
-                    }),
-                  },
-                  trigger: null,
-                });
+                void send(
+                  'Safar',
+                  t('notifBoard', {
+                    stop: leg.from.name,
+                    route: leg.route?.shortName ?? '',
+                    head: leg.headsign ?? '',
+                  }),
+                );
               }
             }
           },
