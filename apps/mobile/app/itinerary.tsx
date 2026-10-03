@@ -6,7 +6,9 @@ import { getItinerary, getLastSearch } from '../src/api/itinerary-store';
 import { buildSteps } from '../src/api/steps';
 import { fmtTime } from '../src/api/format';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import * as Location from 'expo-location';
+import * as Notifications from 'expo-notifications';
 import { openTripTransit, openWalkDirections } from '../src/api/navigate';
 import { UiButton } from '../src/ui/UiButton';
 import { MapView } from '../src/components/MapView';
@@ -58,6 +60,87 @@ function modeIcon(mode: Leg['mode']): string {
   return '🚶';
 }
 
+function haversineM(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const r = 6371000;
+  const toRad = (d: number): number => (d * Math.PI) / 180;
+  const a =
+    Math.sin(toRad(lat2 - lat1) / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(toRad(lon2 - lon1) / 2) ** 2;
+  return 2 * r * Math.asin(Math.sqrt(a));
+}
+
+/**
+ * Foreground trip tracking: watches location while the trip screen is open
+ * and fires a local notification when the rider reaches a boarding stop.
+ * Pauses when the app is backgrounded (Expo Go limitation) — stated in UI.
+ */
+function TripTracker({ trip }: { trip: Itinerary }): React.JSX.Element | null {
+  const { t } = useTranslation();
+  const notified = useRef(new Set<string>());
+  const [active, setActive] = useState(false);
+
+  useEffect(() => {
+    let sub: Location.LocationSubscription | null = null;
+    let live = true;
+    (async () => {
+      try {
+        const [{ status: loc }, { status: notif }] = await Promise.all([
+          Location.requestForegroundPermissionsAsync(),
+          Notifications.requestPermissionsAsync(),
+        ]);
+        if (!live || loc !== 'granted') return;
+        if (notif !== 'granted') return;
+        setActive(true);
+        sub = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.Balanced,
+            distanceInterval: 25,
+            timeInterval: 15000,
+          },
+          (pos) => {
+            const now = Date.now();
+            for (const leg of trip.legs) {
+              if (leg.mode === 'WALK') continue;
+              if (new Date(leg.startTime).getTime() < now - 5 * 60 * 1000) continue;
+              const key = `${leg.from.stopId ?? leg.from.name}|${leg.startTime}`;
+              if (notified.current.has(key)) continue;
+              const d = haversineM(
+                pos.coords.latitude,
+                pos.coords.longitude,
+                leg.from.lat,
+                leg.from.lon,
+              );
+              if (d <= 150) {
+                notified.current.add(key);
+                void Notifications.scheduleNotificationAsync({
+                  content: {
+                    title: 'Safar',
+                    body: t('notifBoard', {
+                      stop: leg.from.name,
+                      route: leg.route?.shortName ?? '',
+                      head: leg.headsign ?? '',
+                    }),
+                  },
+                  trigger: null,
+                });
+              }
+            }
+          },
+        );
+      } catch {
+        // tracking is best-effort; trip remains fully usable without it
+      }
+    })();
+    return () => {
+      live = false;
+      sub?.remove();
+    };
+  }, [trip, t]);
+
+  if (!active) return null;
+  return <Text style={{ opacity: 0.6 }}>{t('trackingOn')}</Text>;
+}
+
 export default function ItineraryDetail(): React.JSX.Element {
   const { t } = useTranslation();
   const { id, data } = useLocalSearchParams<{ id?: string; data?: string }>();
@@ -99,6 +182,7 @@ export default function ItineraryDetail(): React.JSX.Element {
         }}
       />
       <MapView itinerary={trip} />
+      <TripTracker trip={trip} />
       <View style={styles.summary}>
         <Text style={styles.summaryRoute} numberOfLines={2}>
           {trip.legs[0]?.from.name} → {trip.legs[trip.legs.length - 1]?.to.name}

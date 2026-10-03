@@ -25,6 +25,7 @@ export class PlanController {
         when: q.when ? new Date(q.when) : undefined,
         arriveBy: q.arriveBy,
         modes: q.modes,
+        lang: q.lang,
       });
     } catch (err) {
       const coded = err as { code?: string; status?: number; message?: string };

@@ -2,6 +2,7 @@ import { Link, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import i18n from '../src/i18n';
 import { Ionicons } from '@expo/vector-icons';
 import { ApiError, api, addRecentSearch } from '../src/api/client';
 import { getSearch, putItinerary, putLastSearch, putSearch } from '../src/api/itinerary-store';
@@ -122,12 +123,13 @@ export default function Results(): React.JSX.Element {
       toLon: p.toLon ?? '',
       ...(p.when ? { when: p.when } : {}),
     });
-    const key = `${p.fromLat},${p.fromLon}|${p.toLat},${p.toLon}|${p.when ?? ''}|${modeFilter}`;
+    const key = `${p.fromLat},${p.fromLon}|${p.toLat},${p.toLon}|${p.when ?? ''}|${modeFilter}|${i18n.language}`;
     const cached = getSearch(key);
     if (cached) setState({ kind: 'done', items: cached });
     else setState({ kind: 'loading' });
+    const lang = i18n.language?.startsWith('te') ? ('te' as const) : undefined;
     api
-      .plan({ fromLat, fromLon, toLat, toLon, when: p.when, modes: modeFilter })
+      .plan({ fromLat, fromLon, toLat, toLon, when: p.when, modes: modeFilter, lang })
       .then((items) => {
         if (!live) return;
         animateLayout();

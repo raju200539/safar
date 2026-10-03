@@ -54,6 +54,7 @@ export interface PlanParams {
   when?: string;
   arriveBy?: boolean;
   modes?: 'all' | 'bus' | 'metro';
+  lang?: 'en' | 'te';
 }
 
 export const api = {
@@ -63,7 +64,8 @@ export const api = {
       `/v1/plan?fromLat=${p.fromLat}&fromLon=${p.fromLon}&toLat=${p.toLat}&toLon=${p.toLon}` +
         (p.when ? `&when=${encodeURIComponent(p.when)}` : '') +
         (p.arriveBy ? '&arriveBy=true' : '') +
-        (p.modes && p.modes !== 'all' ? `&modes=${p.modes}` : ''),
+        (p.modes && p.modes !== 'all' ? `&modes=${p.modes}` : '') +
+        (p.lang === 'te' ? '&lang=te' : ''),
     ),
   searchStops: (q: string) =>
     req<Place[]>(`/v1/stops/search?q=${encodeURIComponent(q)}`),

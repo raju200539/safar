@@ -25,6 +25,8 @@
   "viewTrip": "View trip",
   "navigateTrip": "Navigate full trip",
   "totalFare": "Total fare",
+  "notifBoard": "Reached {{stop}} — hop on {{route}} towards {{head}}",
+  "trackingOn": "Trip tracking on — we'll alert you at your boarding stops.",
   "changeCity": "Change city",
   "currentCity": "Hyderabad",
   "comingSoon": "Coming soon",

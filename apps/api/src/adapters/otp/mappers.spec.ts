@@ -234,6 +234,22 @@ describe('mappers', () => {
     expect(cleanName(null, 'Fallback')).toBe('Fallback');
   });
 
+  it('builds Telugu instructions when asked', () => {
+    const it = mapItinerary(
+      {
+        start: '2026-10-05T10:00:00+05:30',
+        end: '2026-10-05T10:35:00+05:30',
+        duration: 2100,
+        walkDistance: 250,
+        numberOfTransfers: 0,
+        legs: [WALK_LEG, BUS_LEG],
+      },
+      0,
+      'te',
+    );
+    expect(it?.legs[1]?.instruction).toContain('బస్సు');
+  });
+
   it('cleans echoed route prefixes from headsigns', () => {
     expect(cleanHeadsign('17H/219I_CHERLAPALLY_RAILWAY_STATION_ISNAPUR', '17H/219I')).toBe(
       'CHERLAPALLY RAILWAY STATION ISNAPUR',

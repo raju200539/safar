@@ -48,4 +48,8 @@ export class PlanQueryDto {
   @IsOptional()
   @IsIn(['all', 'bus', 'metro'])
   modes?: 'all' | 'bus' | 'metro';
+
+  @IsOptional()
+  @IsIn(['en', 'te'])
+  lang?: 'en' | 'te';
 }

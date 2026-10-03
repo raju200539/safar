@@ -38,6 +38,7 @@ interface BaseVars {
   destination: unknown;
   dateTime: unknown;
   first: number;
+  lang: string;
 }
 
 export class OtpPlanner implements TripPlanner {
@@ -65,6 +66,7 @@ export class OtpPlanner implements TripPlanner {
       },
       dateTime: toOtpDateTime(when, arriveBy),
       first: PLANNER_REQUEST_COUNT,
+      lang: q.lang ?? 'en',
     };
     const family = q.modes ?? 'all';
     const searches =
@@ -218,9 +220,10 @@ export class OtpPlanner implements TripPlanner {
     }
     const edges = data.planConnection?.edges ?? [];
     const mapped: Itinerary[] = [];
+    const locale = (variables as { lang?: string }).lang === 'te' ? 'te' : 'en';
     edges.forEach((e, i) => {
       if (!e?.node) return;
-      const m = mapItinerary(e.node, i);
+      const m = mapItinerary(e.node, i, locale);
       if (m) mapped.push(m);
     });
     return mapped;

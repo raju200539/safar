@@ -5,7 +5,7 @@ import type {
   Mode,
   Place,
 } from '@hyd/shared';
-import { buildInstruction } from '../../application/instructions';
+import { buildInstruction, type InstructionLocale } from '../../application/instructions';
 import { metroFareInr } from './fare-table';
 
 // Raw OTP GTFS-GraphQL shapes (subset we query). Kept loose on purpose:
@@ -196,7 +196,7 @@ function shortNameOf(leg: OtpLeg): string {
   return leg.route?.longName ?? 'bus';
 }
 
-export function mapLeg(leg: OtpLeg): Leg | null {
+export function mapLeg(leg: OtpLeg, locale: InstructionLocale = 'en'): Leg | null {
   const mode = mapMode(leg.mode);
   if (!mode) return null;
   const from = toPlace(leg.from, 'Start');
@@ -247,7 +247,7 @@ export function mapLeg(leg: OtpLeg): Leg | null {
     const fare = metroFareInr(mapped.from.stopId, mapped.to.stopId);
     if (fare != null) mapped.fareInr = fare;
   }
-  mapped.instruction = buildInstruction(mapped);
+  mapped.instruction = buildInstruction(mapped, locale);
   return mapped;
 }
 
@@ -267,7 +267,8 @@ export function stationKey(p: Place): string | null {
   return norm || null;
 }
 
-export function applyInterchangeHints(legs: Leg[]): void {
+export function applyInterchangeHints(legs: Leg[], locale: InstructionLocale = 'en'): void {
+  const te = locale === 'te';
   for (let i = 0; i < legs.length; i++) {
     const leg = legs[i] as Leg;
     const next = legs[i + 1] as Leg | undefined;
@@ -275,33 +276,47 @@ export function applyInterchangeHints(legs: Leg[]): void {
     const a = stationKey(leg.from);
     const b = stationKey(leg.to);
     const c = stationKey(next.from);
-    const line = next.route?.shortName ?? (next.mode === 'METRO' ? 'metro' : 'bus');
+    const line =
+      next.route?.shortName ??
+      (next.mode === 'METRO' ? (te ? 'మెట్రో' : 'metro') : te ? 'బస్సు' : 'bus');
     const platform = next.from.platformCode
-      ? ` Platform ${next.from.platformCode}`
+      ? te
+        ? ` ప్లాట్‌ఫారం ${next.from.platformCode} నుండి`
+        : ` from Platform ${next.from.platformCode}`
       : '';
-    const head = next.headsign ? ` towards ${next.headsign}` : '';
+    const head = next.headsign
+      ? te
+        ? ` ${next.headsign} వైపు`
+        : ` towards ${next.headsign}`
+      : '';
     if (a && a === b) {
       // Inside one station: no street walking involved.
-      leg.instruction =
-        `Change here at ${leg.from.name} — no need to exit. ` +
-        `Take ${line}${head}${platform}.`;
+      leg.instruction = te
+        ? `ఇక్కడ ${leg.from.name} వద్ద మారండి — బయటకు వెళ్లాల్సిన అవసరం లేదు. ${head} ${line}${platform} ఎక్కండి.`
+        : `Change here at ${leg.from.name} — no need to exit. ` +
+          `Take ${line}${head}${platform}.`;
     } else if (b && b === c && next.from.platformCode) {
       // Walk ends at the next boarding: aim at the platform.
-      leg.instruction =
-        `Walk to${platform} at ${leg.to.name} and board ${line}${head}.`;
+      leg.instruction = te
+        ? `${leg.to.name} వద్ద ప్లాట్‌ఫారం ${next.from.platformCode}కు నడవండి, ${line} ఎక్కండి${head}.`
+        : `Walk to Platform ${next.from.platformCode} at ${leg.to.name} and board ${line}${head}.`;
     }
   }
 }
 
-export function mapItinerary(it: OtpItinerary, index: number): Itinerary | null {
+export function mapItinerary(
+  it: OtpItinerary,
+  index: number,
+  locale: InstructionLocale = 'en',
+): Itinerary | null {
   const legs: Leg[] = [];
   for (const raw of it.legs ?? []) {
-    const leg = mapLeg(raw);
+    const leg = mapLeg(raw, locale);
     if (!leg) return null; // unknown mode: drop the whole option
     legs.push(leg);
   }
   if (legs.length === 0) return null;
-  applyInterchangeHints(legs);
+  applyInterchangeHints(legs, locale);
   const transitLegs = legs.filter((l) => l.mode !== 'WALK').length;
   return {
     id: `it-${String(it.start ?? index)}-${index}`,
