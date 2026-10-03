@@ -7,6 +7,7 @@ import { buildSteps } from '../src/api/steps';
 import { fmtTime } from '../src/api/format';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useRef, useState } from 'react';
+import { Vibration } from 'react-native';
 import * as Location from 'expo-location';
 import { openTripTransit, openWalkDirections } from '../src/api/navigate';
 import { UiButton } from '../src/ui/UiButton';
@@ -77,26 +78,15 @@ function TripTracker({ trip }: { trip: Itinerary }): React.JSX.Element | null {
   const { t } = useTranslation();
   const notified = useRef(new Set<string>());
   const [active, setActive] = useState(false);
+  const [alert, setAlert] = useState<{ stop: string; route: string; head: string } | null>(null);
 
   useEffect(() => {
     let sub: Location.LocationSubscription | null = null;
     let live = true;
     (async () => {
-      let notify: ((title: string, body: string) => Promise<void>) | null = null;
       try {
-        // Dynamic import: expo-notifications is unavailable in some
-        // environments (newer Expo Go); the trip still works without it.
-        const Notifications = await import('expo-notifications');
         const locPerm = await Location.requestForegroundPermissionsAsync();
         if (!live || locPerm.status !== 'granted') return;
-        const notifPerm = await Notifications.requestPermissionsAsync().catch(() => null);
-        if (!live || !notifPerm || notifPerm.status !== 'granted') return;
-        notify = async (title: string, body: string) => {
-          await Notifications.scheduleNotificationAsync({
-            content: { title, body },
-            trigger: null,
-          });
-        };
         setActive(true);
         sub = await Location.watchPositionAsync(
           {
@@ -105,8 +95,6 @@ function TripTracker({ trip }: { trip: Itinerary }): React.JSX.Element | null {
             timeInterval: 15000,
           },
           (pos) => {
-            if (!notify) return;
-            const send = notify;
             const now = Date.now();
             for (const leg of trip.legs) {
               if (leg.mode === 'WALK') continue;
@@ -121,14 +109,12 @@ function TripTracker({ trip }: { trip: Itinerary }): React.JSX.Element | null {
               );
               if (d <= 150) {
                 notified.current.add(key);
-                void send(
-                  'Safar',
-                  t('notifBoard', {
-                    stop: leg.from.name,
-                    route: leg.route?.shortName ?? '',
-                    head: leg.headsign ?? '',
-                  }),
-                );
+                Vibration.vibrate([0, 400, 200, 400]);
+                setAlert({
+                  stop: leg.from.name,
+                  route: leg.route?.shortName ?? '',
+                  head: leg.headsign ?? '',
+                });
               }
             }
           },
@@ -141,11 +127,36 @@ function TripTracker({ trip }: { trip: Itinerary }): React.JSX.Element | null {
       live = false;
       sub?.remove();
     };
-  }, [trip, t]);
+  }, [trip]);
 
-  if (!active) return null;
-  return <Text style={{ opacity: 0.6 }}>{t('trackingOn')}</Text>;
+  return (
+    <View>
+      {active ? <Text style={{ opacity: 0.6 }}>{t('trackingOn')}</Text> : null}
+      {alert ? (
+        <View style={trackStyles.alert}>
+          <Text style={trackStyles.alertTitle}>
+            {t('notifBoard', { stop: alert.stop, route: alert.route, head: alert.head })}
+          </Text>
+          <Pressable onPress={() => setAlert(null)} hitSlop={12}>
+            <Text style={trackStyles.dismiss}>{t('dismiss')}</Text>
+          </Pressable>
+        </View>
+      ) : null}
+    </View>
+  );
 }
+
+const trackStyles = StyleSheet.create({
+  alert: {
+    backgroundColor: '#0B6E4F',
+    borderRadius: 14,
+    padding: 14,
+    gap: 8,
+    marginTop: 4,
+  },
+  alertTitle: { color: '#fff', fontSize: 16, fontWeight: '700' },
+  dismiss: { color: '#fff', fontWeight: '700', textDecorationLine: 'underline' },
+});
 
 export default function ItineraryDetail(): React.JSX.Element {
   const { t } = useTranslation();
