@@ -5,15 +5,34 @@ import { Ionicons } from '@expo/vector-icons';
 import { BrandMark } from './BrandMark';
 import { CITIES, getCity, setCity, subscribeCity } from '../api/city';
 import { cardBase } from '../ui/theme';
-import '../i18n';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import i18n from '../i18n';
+
+const LANG_KEY = 'safar-lang';
 
 /** Top bar: logo + Safar + city pill. Used on the tab screens. */
 export function AppHeader(): React.JSX.Element {
   const { t } = useTranslation();
   const [city, setCityState] = useState(getCity());
   const [open, setOpen] = useState(false);
+  const [lang, setLang] = useState('en');
 
   useEffect(() => subscribeCity(setCityState), []);
+  useEffect(() => {
+    void AsyncStorage.getItem(LANG_KEY).then((v) => {
+      if (v === 'te' || v === 'en') {
+        setLang(v);
+        void i18n.changeLanguage(v);
+      }
+    });
+  }, []);
+
+  const toggleLang = (): void => {
+    const next = lang === 'en' ? 'te' : 'en';
+    setLang(next);
+    void i18n.changeLanguage(next);
+    void AsyncStorage.setItem(LANG_KEY, next);
+  };
 
   return (
     <View style={styles.bar}>
@@ -23,6 +42,9 @@ export function AppHeader(): React.JSX.Element {
         <Ionicons name="location-outline" size={15} color="#fff" />
         <Text style={styles.pillText}>{city}</Text>
         <Ionicons name="chevron-down" size={14} color="#fff" />
+      </Pressable>
+      <Pressable style={styles.pill} onPress={toggleLang}>
+        <Text style={styles.pillText}>{lang === 'en' ? 'తె' : 'EN'}</Text>
       </Pressable>
       <Modal visible={open} transparent animationType="fade">
         <Pressable style={styles.sheet} onPress={() => setOpen(false)}>
