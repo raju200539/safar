@@ -333,7 +333,7 @@ export default function Home(): React.JSX.Element {
         {serverEdit ? (
           <View style={styles.serverBox}>
             <TextInput
-              style={styles.input}
+              style={styles.serverInput}
               value={serverText}
               onChangeText={(s) => {
                 setServerText(s);
@@ -518,6 +518,16 @@ const styles = StyleSheet.create({
   sheetBox: { ...cardBase, padding: 20, gap: 10, margin: 12, maxHeight: '80%' },
   health: { opacity: 0.6 },
   serverBox: { gap: 8 },
+  serverInput: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: theme.border,
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 15,
+    color: theme.text,
+    minHeight: 52,
+  },
   serverMsg: { color: theme.warning },
   credit: { opacity: 0.5, fontSize: 12 },
 });
