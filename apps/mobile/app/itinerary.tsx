@@ -3,10 +3,11 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import type { Itinerary, Leg } from '@hyd/shared';
 import { getItinerary, getLastSearch } from '../src/api/itinerary-store';
+import { useEffect, useRef, useState } from 'react';
+import { api } from '../src/api/client';
 import { buildSteps } from '../src/api/steps';
 import { fmtTime } from '../src/api/format';
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useRef, useState } from 'react';
 import { Vibration } from 'react-native';
 import * as Location from 'expo-location';
 import { openTripTransit, openWalkDirections } from '../src/api/navigate';
@@ -176,7 +177,33 @@ export default function ItineraryDetail(): React.JSX.Element {
       </View>
     );
   }
-  const trip: Itinerary = it;
+  return <TripDetail trip={it} />;
+}
+
+function TripDetail({ trip }: { trip: Itinerary }): React.JSX.Element {
+  const { t } = useTranslation();
+  const [badStops, setBadStops] = useState<string[]>([]);
+
+  useEffect(() => {
+    let live = true;
+    const boardings = trip.legs.filter((l) => l.mode !== 'WALK' && l.from.stopId);
+    Promise.all(boardings.map((l) => api.alerts(l.from.stopId as string).catch(() => [])))
+      .then((lists) => {
+        if (!live) return;
+        const bad = boardings
+          .filter((_, i) =>
+            (lists[i] ?? []).some(
+              (r) => r.type === 'NOT_RUNNING' || r.type === 'DIVERTED',
+            ),
+          )
+          .map((l) => l.from.name);
+        setBadStops([...new Set(bad)]);
+      })
+      .catch(() => undefined);
+    return () => {
+      live = false;
+    };
+  }, [trip]);
   const last = getLastSearch();
   const backTo = {
     ...(last ?? {
@@ -199,6 +226,13 @@ export default function ItineraryDetail(): React.JSX.Element {
         }}
       />
       <MapView itinerary={trip} />
+      {badStops.length > 0 ? (
+        <View style={styles.warnBox}>
+          <Text style={styles.warn}>
+            {t('tripDisruption', { stops: badStops.join(', ') })}
+          </Text>
+        </View>
+      ) : null}
       <TripTracker trip={trip} />
       <View style={styles.summary}>
         <Text style={styles.summaryRoute} numberOfLines={2}>
@@ -326,6 +360,8 @@ const styles = StyleSheet.create({
   summaryTimes: { fontSize: 14, fontWeight: '600', color: theme.primaryDark },
   summaryFare: { fontSize: 14, fontWeight: '700', color: theme.primaryDark },
   co2box: { ...cardBase, padding: 12 },
+  warnBox: { ...cardBase, padding: 12, backgroundColor: theme.warningBg },
+  warn: { color: theme.text, fontWeight: '600' },
   noteBox: { backgroundColor: theme.warningBg },
   note: { color: theme.warning, fontStyle: 'italic' },
   co2: { fontWeight: '700', color: theme.live },

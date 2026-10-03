@@ -118,6 +118,13 @@ export default function Stop(): React.JSX.Element {
         <Text style={type.h2}>
           {t('reports')} ({reports?.length ?? 0})
         </Text>
+        {reports != null &&
+        reports.some((r) => r.type === 'NOT_RUNNING' || r.type === 'DIVERTED') ? (
+          <View style={styles.warnBox}>
+            <Ionicons name="warning-outline" size={20} color={theme.warning} />
+            <Text style={styles.warn}>{t('disruptionWarning')}</Text>
+          </View>
+        ) : null}
         {reports?.length === 0 ? <Text style={type.small}>{t('noReports')}</Text> : null}
         {reports?.map((r) => (
           <Text key={r.id} style={type.small}>
@@ -164,6 +171,14 @@ export default function Stop(): React.JSX.Element {
 const styles = StyleSheet.create({
   container: { padding: 16, gap: 10 },
   hero: { ...cardBase, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 14 },
+  warnBox: {
+    ...cardBase,
+    flexDirection: 'row',
+    gap: 8,
+    padding: 12,
+    backgroundColor: theme.warningBg,
+  },
+  warn: { flex: 1, color: theme.text, fontWeight: '600' },
   dep: { ...cardBase, padding: 12, gap: 4 },
   depTop: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   bus: { fontWeight: '700', color: theme.text, flex: 1 },

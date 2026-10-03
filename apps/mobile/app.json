@@ -17,7 +17,12 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#0B6E4F"
-      }
+      },
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "package": "com.rajupadidapu.safar"
     },
     "plugins": [
       "expo-router",
@@ -26,6 +31,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "fbfcbfea-beb3-43ce-800f-9af4dd20f47e"
+      }
     }
   }
 }

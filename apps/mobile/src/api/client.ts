@@ -5,9 +5,41 @@ import type { Arrival, HealthStatus, Itinerary, Place, Report } from '@hyd/share
 const BASE =
   process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:3000';
 
+let overrideUrl: string | null = null;
+
 /** Shown on the home screen so connection problems are diagnosable. */
 export function getBaseUrl(): string {
-  return BASE;
+  return overrideUrl ?? BASE;
+}
+
+/** Friend-test builds: point the app at a new backend without reinstalling. */
+export async function loadApiBaseUrl(): Promise<void> {
+  try {
+    const { default: AsyncStorage } = await import(
+      '@react-native-async-storage/async-storage'
+    );
+    const v = await AsyncStorage.getItem('safar-api-base-url');
+    if (v && /^https?:\/\//.test(v)) overrideUrl = v.replace(/\/$/, '');
+  } catch {
+    // storage unavailable: keep build-time default
+  }
+}
+
+export async function setApiBaseUrl(url: string): Promise<boolean> {
+  const clean = url.trim().replace(/\/$/, '');
+  if (!/^https?:\/\/[^/]+\.[^/]+/.test(clean) && !/^http:\/\/localhost/.test(clean)) {
+    return false;
+  }
+  overrideUrl = clean;
+  try {
+    const { default: AsyncStorage } = await import(
+      '@react-native-async-storage/async-storage'
+    );
+    await AsyncStorage.setItem('safar-api-base-url', clean);
+  } catch {
+    // ignore persistence failure; memory value still applies
+  }
+  return true;
 }
 
 export class ApiError extends Error {
@@ -25,7 +57,7 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const timer = setTimeout(() => ctrl.abort(), 20000);
   let res: Response;
   try {
-    res = await fetch(`${BASE}${path}`, {
+    res = await fetch(`${getBaseUrl()}${path}`, {
       ...init,
       headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
       signal: ctrl.signal,

@@ -15,6 +15,8 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   api,
   getBaseUrl,
+  loadApiBaseUrl,
+  setApiBaseUrl,
   getRecentSearches,
   type RecentSearch,
 } from '../src/api/client';
@@ -97,11 +99,17 @@ export default function Home(): React.JSX.Element {
   const [departMode, setDepartMode] = useState<'now' | 'at'>('now');
   const [atTime, setAtTime] = useState<Date | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [serverEdit, setServerEdit] = useState(false);
+  const [serverText, setServerText] = useState('');
+  const [serverMsg, setServerMsg] = useState('');
   const destResults = usePlaceSearch(to && destQuery === to.name ? '' : destQuery, userLoc);
 
   // Start = current location, preselected like Uber/Rapido.
   useEffect(() => {
     let live = true;
+    void loadApiBaseUrl().then(() => {
+      if (live) setServerText(getBaseUrl());
+    });
     (async () => {
       try {
         const { status } = await Location.requestForegroundPermissionsAsync();
@@ -322,6 +330,49 @@ export default function Home(): React.JSX.Element {
         <Text style={styles.health}>
           API: {health} ({getBaseUrl()})
         </Text>
+        {serverEdit ? (
+          <View style={styles.serverBox}>
+            <TextInput
+              style={styles.input}
+              value={serverText}
+              onChangeText={(s) => {
+                setServerText(s);
+                setServerMsg('');
+              }}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder="https://your-server.example.com"
+            />
+            <UiButton
+              title={t('saveServer')}
+              variant="secondary"
+              onPress={() =>
+                void (async () => {
+                  const ok = await setApiBaseUrl(serverText);
+                  if (!ok) {
+                    setServerMsg(t('badServerUrl'));
+                    return;
+                  }
+                  setServerEdit(false);
+                  setHealth('…');
+                  try {
+                    const h = await api.health();
+                    setHealth(`${h.status}`);
+                    setServerMsg('');
+                  } catch {
+                    setHealth('offline');
+                    setServerMsg(t('serverUnreachable'));
+                  }
+                })()
+              }
+            />
+            {serverMsg ? <Text style={styles.serverMsg}>{serverMsg}</Text> : null}
+          </View>
+        ) : (
+          <Pressable onPress={() => setServerEdit(true)} hitSlop={8}>
+            <Text style={styles.link}>{t('changeServer')}</Text>
+          </Pressable>
+        )}
         <Text style={styles.credit}>{t('dataCredit')}</Text>
         <Text style={styles.credit}>build {BUILD_NUMBER}</Text>
       </View>
@@ -466,5 +517,7 @@ const styles = StyleSheet.create({
   sheetBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheetBox: { ...cardBase, padding: 20, gap: 10, margin: 12, maxHeight: '80%' },
   health: { opacity: 0.6 },
+  serverBox: { gap: 8 },
+  serverMsg: { color: theme.warning },
   credit: { opacity: 0.5, fontSize: 12 },
 });
