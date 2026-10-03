@@ -1,5 +1,7 @@
 {
   "configVersion": "hyd-v1",
+  "transitServiceStart": "-P1M",
+  "transitServiceEnd": "P1Y",
   "osm": [
     {
       "source": "file:///var/opentripplanner/osm/hyderabad.osm.pbf"
