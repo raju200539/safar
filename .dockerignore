@@ -1,0 +1,5 @@
+node_modules
+dist
+.git
+.env
+data/osm/india-southern-zone.osm.pbf
